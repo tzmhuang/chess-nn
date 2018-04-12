@@ -8,6 +8,7 @@ Purpose:
         using Xaviar initizlization
         *var(W) = 2/[num_in]
 Config:
+        Structure: 3(4) hidden layer including all extracted data columns
         Epoch: 5
         batch_size: 10000
         Initialization: rand_normal [mean = 0, std = Xaviar]
