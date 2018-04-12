@@ -1,13 +1,14 @@
 '''
-Name: evl_NN_3_1
+Name: evl_NN_3_2
 Date: 13,Apr,2018
 Train on: Google VM
 Purpose:
         - Adding move_num as training input, hopefully help machine distinguish stages of game
+        - Adding more layers
         - using Xaviar initizlization
            - *var(W) = 2/[num_in]
 Config:
-        - Structure: 3(4) hidden layer including all extracted data columns
+        - Structure: 10(11) hidden layer including all extracted data columns
         - Epoch: 5
         - batch_size: 10000
         - Initialization: rand_normal [mean = 0, std = Xaviar]
@@ -187,10 +188,11 @@ with tf.name_scope("relu_2"):
 
 tf.summary.histogram("relu_2s",relu_2)
 
+##--------------------------
 
 with tf.name_scope("layer_3"):
     with tf.name_scope("weights_3"):
-        W_3 = weight_variable(1542,3,"W_3")
+        W_3 = weight_variable(1542,1542,"W_3")
         variable_summaries(W_3)
     with tf.name_scope("bias_3"):
         b_3 = tf.Variable(initial_value =0.0,name = "b_3")
@@ -205,9 +207,133 @@ with tf.name_scope("relu_3"):
 tf.summary.histogram("relu_3s",relu_3)
 
 
+with tf.name_scope("layer_4"):
+    with tf.name_scope("weights_4"):
+        W_4 = weight_variable(1542,1542,"W_4")
+        variable_summaries(W_4)
+    with tf.name_scope("bias_4"):
+        b_4 = tf.Variable(initial_value =0.0,name = "b_4")
+        variable_summaries(b_4)
+    with tf.name_scope("pre_activate_4"):
+        a_4 = full_layer(relu_3, W_4, b_4)
+        tf.summary.histogram("a_4",a_4)
+
+with tf.name_scope("relu_4"):
+    relu_4 = tf.nn.relu(a_4)
+
+tf.summary.histogram("relu_4s",relu_4)
+
+
+
+with tf.name_scope("layer_5"):
+    with tf.name_scope("weights_5"):
+        W_5 = weight_variable(1542,1542,"W_5")
+        variable_summaries(W_5)
+    with tf.name_scope("bias_5"):
+        b_5 = tf.Variable(initial_value =0.0,name = "b_5")
+        variable_summaries(b_5)
+    with tf.name_scope("pre_activate_5"):
+        a_5 = full_layer(relu_4, W_5, b_5)
+        tf.summary.histogram("a_5",a_5)
+
+with tf.name_scope("relu_5"):
+    relu_5 = tf.nn.relu(a_5)
+
+tf.summary.histogram("relu_5s",relu_5)
+
+
+with tf.name_scope("layer_6"):
+    with tf.name_scope("weights_6"):
+        W_6 = weight_variable(1542,1542,"W_6")
+        variable_summaries(W_6)
+    with tf.name_scope("bias_6"):
+        b_6 = tf.Variable(initial_value =0.0,name = "b_6")
+        variable_summaries(b_6)
+    with tf.name_scope("pre_activate_6"):
+        a_6 = full_layer(relu_5, W_6, b_6)
+        tf.summary.histogram("a_6",a_6)
+
+with tf.name_scope("relu_6"):
+    relu_6 = tf.nn.relu(a_6)
+
+tf.summary.histogram("relu_6s",relu_6)
+
+
+with tf.name_scope("layer_7"):
+    with tf.name_scope("weights_7"):
+        W_7 = weight_variable(1542,1542,"W_7")
+        variable_summaries(W_7)
+    with tf.name_scope("bias_7"):
+        b_7 = tf.Variable(initial_value =0.0,name = "b_7")
+        variable_summaries(b_7)
+    with tf.name_scope("pre_activate_7"):
+        a_7 = full_layer(relu_6, W_7, b_7)
+        tf.summary.histogram("a_7",a_7)
+
+with tf.name_scope("relu_7"):
+    relu_7 = tf.nn.relu(a_7)
+
+tf.summary.histogram("relu_7s",relu_7)
+
+
+
+with tf.name_scope("layer_8"):
+    with tf.name_scope("weights_8"):
+        W_8 = weight_variable(1542,1542,"W_8")
+        variable_summaries(W_8)
+    with tf.name_scope("bias_8"):
+        b_8 = tf.Variable(initial_value =0.0,name = "b_8")
+        variable_summaries(b_8)
+    with tf.name_scope("pre_activate_8"):
+        a_8 = full_layer(relu_7, W_8, b_8)
+        tf.summary.histogram("a_8",a_8)
+
+with tf.name_scope("relu_8"):
+    relu_8 = tf.nn.relu(a_8)
+
+tf.summary.histogram("relu_8s",relu_8)
+
+
+
+with tf.name_scope("layer_9"):
+    with tf.name_scope("weights_9"):
+        W_9 = weight_variable(1542,1542,"W_9")
+        variable_summaries(W_9)
+    with tf.name_scope("bias_9"):
+        b_9 = tf.Variable(initial_value =0.0,name = "b_9")
+        variable_summaries(b_9)
+    with tf.name_scope("pre_activate_9"):
+        a_9 = full_layer(relu_8, W_9, b_9)
+        tf.summary.histogram("a_9",a_9)
+
+with tf.name_scope("relu_9"):
+    relu_9 = tf.nn.relu(a_9)
+
+tf.summary.histogram("relu_9s",relu_9)
+
+
+
+
+with tf.name_scope("layer_10"):
+    with tf.name_scope("weights_10"):
+        W_10 = weight_variable(1542,3,"W_10")
+        variable_summaries(W_10)
+    with tf.name_scope("bias_10"):
+        b_10 = tf.Variable(initial_value =0.0,name = "b_10")
+        variable_summaries(b_10)
+    with tf.name_scope("pre_activate_10"):
+        a_10 = full_layer(relu_9, W_10, b_10)
+        tf.summary.histogram("a_10",a_10)
+
+with tf.name_scope("relu_10"):
+    relu_10 = tf.nn.relu(a_10)
+
+tf.summary.histogram("relu_10s",relu_10)
+
+
 
 with tf.name_scope("prob"):
-    Y = tf.nn.softmax( relu_3 )
+    Y = tf.nn.softmax( relu_10 )
 
 tf.summary.histogram("softmax", Y)
 
@@ -217,7 +343,7 @@ with tf.name_scope("prediction"):
 
 with tf.name_scope("cross_entropy"):
     #cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(Y+10e-5), reduction_indices=[1]))
-    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits( labels = tf.argmax(y_,1) ,logits = relu_3)
+    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits( labels = tf.argmax(y_,1) ,logits = relu_10)
     loss = tf.reduce_mean(cross_entropy)
 
 tf.summary.scalar("loss", loss)

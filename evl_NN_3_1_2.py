@@ -1,8 +1,9 @@
 '''
-Name: evl_NN_3_1
+Name: evl_NN_3_2
 Date: 13,Apr,2018
 Train on: Google VM
 Purpose:
+        - Using MomentumOptimizer learningrate = 0.0001,  m = 0.5
         - Adding move_num as training input, hopefully help machine distinguish stages of game
         - using Xaviar initizlization
            - *var(W) = 2/[num_in]
@@ -11,8 +12,9 @@ Config:
         - Epoch: 5
         - batch_size: 10000
         - Initialization: rand_normal [mean = 0, std = Xaviar]
-        - Training: GradientDescentOptimizer
+        - Training: MomentumOptimizer
         - Step_size: 0.0001
+        - Momentum_parameter: 0.5
 '''
 
 '''
@@ -224,8 +226,8 @@ tf.summary.scalar("loss", loss)
 
 
 with tf.name_scope("train"):
-    train_step = tf.train.GradientDescentOptimizer(0.0001).minimize(loss, global_step = global_step)
-
+    #train_step = tf.train.GradientDescentOptimizer(0.0001).minimize(loss, global_step = global_step)
+    train_step = tf.MomentumOptimizer(0.0001,0.5).minimize(loss,global_step = global_step)
 with tf.name_scope("accuracy"):
     accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(y_, axis = 1), pred),dtype = tf.float32))
 
