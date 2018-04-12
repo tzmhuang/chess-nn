@@ -1,0 +1,672 @@
+import chess
+import numpy as np
+import chess.pgn
+import pandas as pd
+from io import StringIO                                                         #for PGN string parsing
+
+#pgn = open("Desktop/Chess/ficsgamesdb_201701_standard_nomovetimes_1511264.pgn") #Total number of games: 104035
+./google-cloud-sdk/bin/gcloud compute ssh --zone=asia-east1-a nn-instance1
+
+# from bucket to VM
+gsutil cp gs://[BUCKET_NAME]/[OBJECT_NAME] [OBJECT_DESTINATION]
+gsutil cp gs://chess-nn/pgn_data_titled_2013 ~/Chess
+gsutil cp gs://chess-nn/data ~/Chess
+gsutil cp gs://chess-nn/data/train_data_2013 ~/Chess
+gsutil cp gs://chess-nn/data/atk_map_* /home/huangtom2/Chess
+
+
+
+
+#from VM to bucket?
+gsutil cp [LOCAL_OBJECT_LOCATION] gs://[DESTINATION_BUCKET_NAME]/
+gsutil cp  ~/Chess/499 gs://chess-nn/
+
+# from VM to local
+gcloud compute copy-files [INSTANCE_NAME]:[REMOTE_FILE_PATH] [LOCAL_FILE_PATH]
+gcloud compute copy-files nn-instance1:~/Chess/train_data_2013 ~/Desktop
+
+gcloud compute copy-files nn-instance1:~/Chess/castling_* ~/Desktop/Chess/data
+gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/train_data{32499..41499..500} ~/Desktop/Chess/data
+gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/game_move_num_* ~/Desktop/Chess/data
+gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/at* ~/Desktop/Chess/data
+gcloud compute copy-files nn-instance1:/home/huangtom2/chess_data.gz ~/Desktop/Chess/data
+gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/flag.npy ~/Desktop
+
+#from local to VM
+gcloud compute scp [LOCAL_FILE_PATH] [INSTANCE_NAME]:~/
+gcloud compute copy-files ~/Desktop/Chess/data/piece_pos_data_check_1 nn-instance1:/home/huangtom2/Chess --zone asia-east1-a
+gcloud compute copy-files ~/Desktop/Chess/data/game_move_num root@nn-instance1:/home/huangtom2/Chess --zone asia-east1-a
+
+gcloud compute scp ~/Desktop/Chess/data/game_move_num nn-instance1:/home/huangtom2/Chess
+
+'''
+Meta data:
+    1. 41738 total games played
+    2. 3406526 total game states
+    3. 3406526 total castling states
+'''
+# pgn = open("Desktop/Chess/tmp.pgn")
+# line_br_detector = 0
+#
+# for line in pgn:
+#     if line == '\n':
+#         line_br_detector += 1
+#
+
+def pgn_file_reader(file_dir):
+    pgn = open(file_dir)
+    line_br_detector = 0
+    pgn_data_frame = pd.DataFrame()
+    #temp0 = pd.Series()
+    temp1 = pd.Series()
+    for line in pgn.read().splitlines():                                        #Forming DataFrame with Pandas
+        if line == "":
+            line_br_detector += 1
+        if line_br_detector%2 != 0:
+            temp0 = pd.Series(line)
+        if line_br_detector > 0 and line_br_detector%2 == 0:
+            pgn_data_frame = pgn_data_frame.append(temp1, ignore_index=True)
+            temp1 = pd.Series()
+            line_br_detector = 0
+            continue
+        #temp0 = pd.Series(line)
+        #temp1 = temp1.append(temp0, ignore_index=True)
+    pgn.close()
+    return pgn_data_frame
+
+pgn_data = pgn_file_reader("Desktop/Chess/ficsgamesdb_201701_standard_nomovetimes_1511264.pgn")
+
+# pgn_string = DataX[18]
+# game_string = pgn_string[i]         #i in 0 to n-1
+#
+# _game_ = chess.read.game(StringIO(game_string))
+
+def run_game(game):
+    board = chess.Board()
+    for moves in game.main_line():
+        board.push(moves)
+    return board
+
+def check_counter(pgn_df):
+    count = 0
+    for i in range(0,pgn_df.size):
+        tmp_game = chess.pgn.read_game(StringIO(pgn_df[0][i]))
+        board = run_game(tmp_game)
+        print (board.result())
+        if board.result() != '*':
+            count += 1
+    return count
+
+
+
+pgn_string = DataX[18][i]
+game = chess.pgn.read_game(StringIO(game_string))
+
+
+piece_val = {'P':1, 'R':5, 'N':3, 'B':4, 'Q':9, 'K':100,
+             'p':-1, 'r':-5, 'n':-3, 'b':-4, 'q':-9, 'k':-100,
+             '.':0}
+
+
+################################################################################
+# board_cvrt    game_cvrt   move_df
+################################################################################
+data = pd.read_csv("../../huangtom/Chess/pgn_data_titled_2013")
+
+# board_cvrt function
+# input: board_state( type: chess.Board )
+# output: a row of pd.Series,
+# 0-63 as chess piece representations,
+# 64 as castling_flag_w
+# 65 being game result.
+def board_cvrt( board_state, game ):
+    Data_row = pd.Series() # initializing output of
+    board_str = str(board_state)
+    for piece in board_str:
+        if piece == ' ' or piece == '\n':
+            continue
+        else:
+            temp = pd.Series([piece_val[piece]])
+            Data_row = Data_row.append(temp, ignore_index=True)
+    if game.headers['Result'] == "1-0":
+        result = pd.Series([1])
+    elif game.headers['Result'] == "1/2-1/2":
+        result = pd.Series([0])
+    else :
+        result = pd.Series([-1])
+    Data_row = Data_row.append(result,ignore_index=True)
+    return Data_row
+
+
+#input: board state
+#output: pd.Series (768) of binary position representation of each piece
+def board_cvrt_sqr( board_state, piece ):
+    Data_row = pd.Series() # initializing output of
+    board_str = str(board_state)
+    for i in board_str:
+        if i == ' ' or i == '\n':
+            continue
+        elif i == '.':
+            temp = pd.Series([piece_val[i]])
+            Data_row = Data_row.append(temp, ignore_index=True)
+        else:
+            temp = pd.Series(i)
+            Data_row = Data_row.append(temp, ignore_index=True)
+    return Data_row
+
+
+#game_cvrt() function: convert game into pandas data frame
+#input: chess.pgn.game object
+#output:  pandas.DataFrame, each row is out put of board_cvrt()
+def game_cvrt(game):
+    board = chess.Board()
+    Data_game = pd.DataFrame()
+    for moves in game.main_line():
+        board.push(moves)
+        temp = board_cvrt(board,game)
+        Data_game = Data_game.append(temp, ignore_index = True)
+    return Data_game.astype('int8')
+
+def move_df(pgn_df):
+    temp = pd.DataFrame()
+    output = pd.DataFrame()
+    for i in range(38000,pgn_df.shape[0]): ###### error, redo data from 31500 to 31999, should be range(31500, 32000)
+        game = chess.pgn.read_game(StringIO(pgn_df.iloc[i,0]))
+        cvrtd_game = game_cvrt(game)
+        temp = temp.append(cvrtd_game, ignore_index=True)
+        output = output.append(cvrtd_game, ignore_index=True)
+        if (i+1) %500 == 0:
+            temp.to_csv("~/Chess/train_data{}".format(i))
+            temp = pd.DataFrame()
+            print (i)
+    temp.to_csv("~/Chess/train_data{}".format(i))
+    return output
+
+pgn_data = move_df(data)
+pgn_data.to_csv("~/Chess/train_data_final")
+
+################################################################################
+# game_number
+################################################################################
+
+def move_counter(game, game_num):
+    board = chess.Board()
+    counter_game = pd.DataFrame(columns = ["game_num","move_num"],dtype = "int8")
+    move_num = 0
+    for moves in game.main_line():
+        board.push(moves)
+        move_num +=1
+        temp = pd.Series({'game_num':game_num,'move_num':move_num})
+        counter_game = counter_game.append(temp, ignore_index = True)
+    return counter_game
+
+def game_num_df(pgn_df):
+    #temp = pd.DataFrame(columns = ["game_num","move_num"], dtype = "int8")
+    output = pd.DataFrame(columns = ["game_num","move_num"],dtype = "int8")
+    for i in range(pgn_df.shape[0]): ###### error, redo data from 31500 to 31999, should be range(31500, 32000)
+        game = chess.pgn.read_game(StringIO(pgn_df.iloc[i,0]))
+        index = i+41737
+        counter_df = move_counter(game,index+1)
+        #temp = temp.append(counter_df, ignore_index=True)
+        output = output.append(counter_df, ignore_index=True)
+        if (i+1) %1== 0:
+            #temp.to_csv("~/Chess/train_data{}".format(i))
+            #temp = pd.DataFrame()
+            print (i)
+    #temp.to_csv("~/Chess/train_data{}".format(i))
+    return output
+
+game_move_num = game_num_df(pgn_data)
+
+################################################################################
+# castling check
+################################################################################
+def castling_check_ks_w( board_state ):
+    if bool(board_state.castling_rights & chess.BB_H1):
+        return True
+    else:
+        return False
+
+def castling_check_qs_w( board_state ):
+    if bool(board_state.castling_rights & chess.BB_A1):
+        return True
+    else:
+        return False
+
+def castling_check_ks_b( board_state ):
+    if bool(board_state.castling_rights & chess.BB_H8):
+        return True
+    else:
+        return False
+
+def castling_check_qs_b( board_state ):
+    if bool(board_state.castling_rights & chess.BB_A8):
+        return True
+    else:
+        return False
+
+def castling_row( board_state):
+    ks_w = castling_check_ks_w( board_state )
+    qs_w = castling_check_qs_w( board_state )
+    ks_b = castling_check_ks_b( board_state )
+    qs_b = castling_check_qs_b( board_state )
+    Data_row = pd.Series([int(ks_w),int(qs_w),int(ks_b),int(qs_b)])
+    return Data_row
+
+def castling_game_cvrt(game):
+    board = chess.Board()
+    Data_game = pd.DataFrame()
+    for moves in game.main_line():
+        board.push(moves)
+        temp = castling_row(board)
+        Data_game = Data_game.append(temp, ignore_index = True)
+    return Data_game.astype('int8')
+
+def castling_move_df(input_df):
+    temp = pd.DataFrame()
+    output = pd.DataFrame()
+    for i in range(0,input_df.shape[0]):
+        game = chess.pgn.read_game(StringIO(input_df.iloc[i,0]))
+        cvrtd_game = castling_game_cvrt(game)
+        temp = temp.append(cvrtd_game, ignore_index=True)
+        output = output.append(cvrtd_game, ignore_index=True)
+        if (i+1) %500 == 0:
+            temp.to_csv("~/Chess/castling_col_{}".format(i))
+            temp = pd.DataFrame()
+            print (i)
+    temp.to_csv("~/Chess/castling_col_{}".format(i))
+    return output
+
+castling_data = castling_move_df(data)
+
+################################################################################
+# moving side check white is 1
+################################################################################
+
+def turn_state(board_state):
+    return pd.Series(int(board_state.turn))
+
+def turn_game(game):
+    board = chess.Board()
+    Data_game = pd.DataFrame()
+    for moves in game.main_line():
+        board.push(moves)
+        temp = turn_state(board)
+        Data_game = Data_game.append(temp, ignore_index=True)
+    return Data_game.astype('int8')
+
+def turn_move_df(input_df):
+    temp = pd.DataFrame()
+    output = pd.DataFrame()
+    for i in range(0,input_df.shape[0]):
+        game = chess.pgn.read_game(StringIO(input_df.iloc[i,0]))
+        cvrtd_game = turn_game(game)
+        output = output.append(cvrtd_game, ignore_index=True)
+        if (i+1) %500 == 0:
+            print (i)
+    return output
+
+data = pd.read_csv("./Chess/pgn_data_titled_2013", index_col = 0)
+
+data1 = data.iloc[0:5000]
+data2 = data.iloc[5000:10000]
+data3 = data.iloc[10000:15000]
+data4 = data.iloc[15000:20000]
+data5 = data.iloc[20000:25000]
+data6 = data.iloc[25000:30000]
+data7 = data.iloc[30000:35000]
+data8 = data.iloc[35000:41738]
+
+move_df8 = turn_move_df(data8)
+move_df8.to_csv("./Chess/move_df_8")
+################################################################################
+# is_pinned
+################################################################################
+
+################################################################################
+# attacks
+################################################################################
+
+################################################################################
+# attackers
+################################################################################
+#pd_data_x = Data_df.iloc[:,0:65]
+#pd_data_y = Data_df.iloc[:,65:66]
+def calc_prob(pd_data):
+    pd_data_x = pd_data.iloc[:,0:64]
+    pd_data_y = pd_data.iloc[:,64:65]
+    completed_states = pd.DataFrame(np.zeros(shape = (1,pd_data_x.shape[1])))
+    prob_col = pd.DataFrame(np.zeros(shape = (pd_data_x.shape[0],3)))
+    for i in range(pd_data_x.shape[0]):
+        if (((completed_states == pd_data_x.iloc[i]).sum(axis = 1) == 64).sum()) == 0:  #caution: pd_data_x.iloc[i]).sum(axis = 1) == ?
+            temp_pd = (pd_data_x == pd_data_x.iloc[i]).sum(axis = 1)
+            y_index = temp_pd[temp_pd == 65].index  #caution: temp_pd == ?
+             #index with same state
+            same_state_y = pd_data_y.iloc[y_index,:]
+            prob_w = (((same_state_y ==  1).sum())/same_state_y.size).reset_index(drop = True)[0]
+            prob_l = (((same_state_y == -1).sum())/same_state_y.size).reset_index(drop = True)[0]
+            prob_d = (((same_state_y == 0).sum())/same_state_y.size).reset_index(drop = True)[0]
+            prob_col.iloc[y_index] = (prob_w, prob_l, prob_d)
+            completed_states = completed_states.append(pd_data_x.iloc[i], ignore_index=True)
+            print("a")
+        else:
+            continue
+            #calculated the probability of winning losing and drawing
+            #create dataframe with each state
+            #record state already visited to avoid repetition
+            #output result for each line of input
+    #output = pd.concat([pd_data, prob_col], axis = 1)
+    return prob_col
+
+calc_prob(train_data499)
+prob_col.to_csv("~/Chess/prob_col_499")
+#done-list: 499,
+
+
+
+
+#data_y[:,].reshape(16231,1)
+
+# feature to extract:
+# 1. number of each piece
+# 2. positon of each piece
+# 3. piece mobility
+
+def side_to_move(board):
+    return int(board.turn) #true is white
+
+
+game.board().has_legal_en_passant()
+
+def piece_position(board):
+    piece_pos = pd.Series()
+    for j in range(0,2):
+        for i in range(1,7):
+            square = board.pieces(i,j)
+            piece = chess.Piece(i,j).symbol()
+            piece_rep = board_cvrt_sqr(square, piece)
+            piece_pos = piece_pos.append(piece_rep, ignore_index = True)
+    return piece_pos.astype('int8')
+
+#function equivilant to game_cvrt() but using board_cvrt_sqr() instead
+def game_cvrt_sqr(game):
+    board = chess.Board()
+    Data_game = pd.DataFrame()
+    for moves in game.main_line():
+        board.push(moves)
+        temp = piece_position(board)
+        Data_game = Data_game.append(temp, ignore_index=True)
+    return Data_game.astype('int8')
+
+def piece_pos_df(pgn_df):
+    temp = pd.DataFrame()
+    for i in range(0,pgn_df.size):
+        game = chess.pgn.read_game(StringIO(pgn_df.iloc[i,0]))
+        temp = temp.append(game_cvrt_sqr(game), ignore_index=True)
+    return temp
+
+
+
+################################################################################
+# FUNCTION: piece_pos_sep()
+################################################################################
+from collections import OrderedDict
+piece_val_2 = {'P':1, 'R':5, 'N':3, 'B':4, 'Q':9, 'K':100,
+             'p':-1, 'r':-5, 'n':-3, 'b':-4, 'q':-9, 'k':-100}
+piece_val_2 = (('P',1),('a',2),('c',3),('t',4),('h',5))
+temp = OrderedDict(piece_val_2)
+for i in piece_val_2:
+    print(i)
+#piece_pos_sep()
+#input: move_df_x, position only , shape should be (?,64), no castling term and flag!!
+#output: pd.DataFrame with shape (12,64) for each row of input
+## potential inprovement: do not ignore index for easy screening of specific piece later
+def piece_pos_sep(move_df):
+    #output = pd.DataFrame()
+    check_pt = pd.DataFrame()
+    for i in range(0,3):
+        temp = pd.Series()
+        for piece in piece_val_2:
+            piece_num = piece_val_2[piece]
+            #row = (move_df.iloc[i] == piece_num)
+            row = (move_df.iloc[i] == piece_num)
+            temp = temp.append(row, ignore_index=True)
+        check_pt = check_pt.append(temp, ignore_index=True)
+        #output = output.append(temp, ignore_index=True)
+        if (i+1)%10000 == 0:
+            check_pt = check_pt.astype('int8')
+            check_pt.to_csv("~/Chess/piece_pos_data{}".format(i))
+            print (i+2850000) #remember to change!!!!!!!!!
+            check_pt = pd.DataFrame()
+            continue
+        check_pt = check_pt.astype('int8')
+        check_pt.to_csv("~/Chess/piece_pos_data{}".format(i))
+    return #output.astype('int8')
+
+
+# numpy version
+def piece_pos_sep(move_np_x):
+    result = np.empty([0,768], dtype='int8')
+    for i in range(0,move_np_x.shape[0]):
+        temp = np.empty([1,0],dtype = "int8")
+        for piece in piece_val_2:
+            piece_num = piece_val_2[piece]
+            row = (move_np_x[i:i+1] == piece_num)
+            temp = np.concatenate((temp,row), axis = 1)
+        result = np.concatenate((result,temp),axis = 0)
+        if i%(i+1) == 10000:
+            print (i)
+    return result
+
+
+
+'''
+import h5py
+import numpy as np
+train_h = h5py.File("//Volumes/DiskA/train_data.h5")   #2384568
+test_h = h5py.File("//Volumes/DiskA/test_data.h5") #1021958
+# train_h = h5py.File("./DNN/train_data.h5")
+# test_h = h5py.File("./DNN/test_data.h5")
+8-cores:
+1. r1 = piece_pos_sep(np1) np1 = train_h['board_set'][0:477000,:]
+2. r2 = piece_pos_sep(np2) np2 = train_h['board_set'][477000:954000,:]
+3. r3 = piece_pos_sep(np3) np3 = train_h['board_set'][954000:1431000,:]
+4. r4 = piece_pos_sep(np4) np4 = train_h['board_set'][1431000:1908000,:]
+5. r5 = piece_pos_sep(np5) np5 = train_h['board_set'][1908000:2384568,:]
+6. r6 = piece_pos_sep(np6) np6 = test_h['board_set'][0:341000,:]
+7. r7 = piece_pos_sep(np7) np7 = test_h['board_set'][341000:682000,:]
+8. r8 = piece_pos_sep(np8) np8 = test_h['board_set'][682000:1021958,:]
+'''
+
+
+
+#1. piece_pos_sep(data.iloc[0:80000,0:64])          CPU4
+#2. piece_pos_sep(data2.iloc[80000:160000,0:64])    CPU1
+#3. piece_pos_sep(data3.iloc[160000:240000,0:64])
+#done
+
+
+#second phase
+#1. piece_pos_sep(data.iloc[240000:1300000,0:64])    #to 1289999      CPU4
+#2. piece_pos_sep(data2.iloc[1300000:1800000,0:64])   #done
+#3. piece_pos_sep(data3.iloc[1800000:2300000,0:64])     #done
+
+#third phase
+#4. piece_pos_sep(data2.iloc[2300000:2850000,0:64])     #to 2369999
+#6. piece_pos_sep(data3.iloc[2850000:3406526,0:64])
+
+
+
+
+source Chess/bin/activate
+
+python3
+
+import numpy as np
+import pandas as pd
+
+data1 = pd.read_csv("Chess/train_data_2013", index_col = 0).iloc[240000:1300000,0:64]
+data2 = pd.read_csv("Chess/train_data_2013", index_col = 0).iloc[2300000:2850000,0:64]
+data3 = pd.read_csv("Chess/train_data_2013", index_col = 0).iloc[2850000:3406526,0:64]
+
+
+
+
+
+piece_pos_sep(train_500_x.iloc[0:3,0:64])
+
+data = pd.read_csv("Desktop/Chess/train_500", index_col = 0)
+train_500_x = data.iloc[:,0:65]
+train_500_y = data.iloc[:,65:66]
+
+
+piece_pos_500 = piece_pos_sep(train_500_x.iloc[:,0:64])
+
+
+
+################################################################################
+# FUNCTION: Creating a unique list of all available states
+# DONE
+################################################################################
+
+################################################################################
+# Convert result into 3 column array (win,lose,draw)
+#
+################################################################################
+source Chess/bin/activate
+python3
+
+import numpy as np
+import h5py
+
+def r2y(result_np):
+    y = np.empty([0,3], dtype = "int8")
+    for i in range(0,result_np.shape[0]):
+        if result_np[i] == 1:
+            temp = np.array([[1,0,0]])
+        elif result_np[i] == -1:
+            temp = np.array([[0,1,0]])
+        elif result_np[i] == 0:
+            temp = np.array([[0,0,1]])
+        else:
+            return -1
+        y = np.concatenate((y,temp),axis = 0)
+        if (i+1)%5000 == 0: print (i)
+    return y
+
+h = h5py.File("./Chess/chess_data.h5")
+result = h['result']
+result_np = np.array(result)
+
+result_np1 = result_np[0:425000]
+y1 = r2y(result_np1)
+np.save("./Chess/y1", y1)
+
+result_np2 = result_np[425000:900000]
+y1 = r2y(result_np2)
+np.save("./Chess/y2", y1)
+
+result_np3 = result_np[900000:1350000]
+y1 = r2y(result_np3)
+np.save("./Chess/y3", y1)
+
+result_np4 = result_np[1350000:1800000]
+y1 = r2y(result_np4)
+np.save("./Chess/y4", y1)
+
+result_np5 = result_np[1800000:2250000]
+y1 = r2y(result_np5)
+np.save("./Chess/y5", y1)
+
+result_np6 = result_np[2250000:2700000]
+y1 = r2y(result_np6)
+np.save("./Chess/y6", y1)
+
+result_np7 = result_np[2700000:3150000]
+y1 = r2y(result_np7)
+np.save("./Chess/y7", y1)
+
+result_np8 = result_np[3150000:3406526]
+y1 = r2y(result_np8)
+np.save("./Chess/y8", y1)
+
+def file_combine(start,finish):
+    combine_np = np.empty([0,3],dtype = "int8")
+    for i in range(start,finish):
+        temp = np.load("./Chess/y{}.npy".format(i))
+        combine_np = np.concatenate((combine_np,temp), axis = 0)
+        print (i)
+        #if (i+1) % 100000 == 0:
+            #combine_df.to_csv("~/Desktop/Chess/data/piece_pos_checkpt")
+            #print("check point done")
+    return combine_np
+
+
+################################################################################
+'''Number of White and Black piece on board'''
+################################################################################
+
+def wht_blk_piece_num(h5_ptr):
+    data = h5_ptr.piece_pos[:,:]
+    result = np.empty([0,2], type = 'int8')
+    for i in shape.data[0]:
+        w_num = np.array([[data[i][0:384].sum()]])
+        b_num = np.array([[data[i][384:768].sum()]])
+        temp = np.concatenate((w_num,b_num),axis = 1)
+        result = np.concatenate((result,temp), axis = 0)
+    return result
+
+
+
+################################################################################
+'''
+Organize data as HDF5 data file using h5py package
+'''
+################################################################################
+import numpy as np
+import h5py
+import pandas as pd
+
+def pd2np_merg(start,fin):
+    result = np.empty([0,1], dtype = 'int8')
+    for i in range(start,fin):
+        temp = pd.read_csv("./Chess/move_df_{}".format(i), index_col = 0, dtype = 'int8')
+        temp = np.array(temp)
+        result = np.concatenate((result,temp), axis = 0)
+        print (i)
+    return result
+
+
+def pd2h5(np_data,ds_name):
+    with h5py.File("./Chess/data") as h:
+        tmp = h.create_dataset(ds_name,data = np)
+
+
+
+
+
+
+
+2, 90113,91547,87779 == 269439 ok
+26, 19526,21966, 21062, 19780, 4644 == 86978 ok
+27, true:87836, get:87836 ok
+28, true:86503, get:86502 ok
+29, true:83107, get:83107 ok
+30, true:88119, get:88119 ok
+32, true:83514, get:83514 ok
+
+total: 3406485
+
+true - real
+p33: 79108-79067 = 131 wrong
+p32: 83514
+def count(start,end):
+    t = 0
+    for i in range(start,end):
+        t = t+train_data[train_data.game_num == i].shape[0]
+    return t
+
+def moves_n():
+    for i in range(40741,41738):
+        a = train_data[train_data.game_num == i].move_num
+        print (max(a))
