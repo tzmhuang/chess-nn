@@ -6,7 +6,9 @@ Purpose:
         Using Xaviar Init. on evl_NN_2_3
         Compare with evl_NN_2_4_1
 
+
 Config:
+        Structure: 3(4) hidden layer including all extracted data columns
         Epoch: 5
         batch_size: 10000
         Initialization: rand_normal [mean = 0, std = 0.01] / rand_normal [mean = 0, std = 0.001]
