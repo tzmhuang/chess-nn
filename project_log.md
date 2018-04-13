@@ -65,3 +65,5 @@
    - usually minibatch gradientDescent has batch_size = 100-256
 
 3. Try to integrate reinforcement learning
+
+4. Set up google VM GPU to increase training speed
