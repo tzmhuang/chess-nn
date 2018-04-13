@@ -28,7 +28,7 @@
    - Mid-Game `20 < n <= 60`
    - Endgame `n > 60(total_move_num)`
 
-8.  Adding `evl_NN_3_1_2_mid` and `evl_NN_3_1_2_late`
+8.  Adding `evl_NN_2_4_mid` and `evl_NN_2_4_late`
    - Seperate mid and late game training
 
 
@@ -51,3 +51,17 @@
 
 4. `evl_NN_3_1_2` result worse than expected
    - `evl_NN_3_1_2_GD` shows potential, with cost reaching 1.05
+   - `evl_NN_3_1_2_GD` soft max pattern not as distinctive? as `evl_NN_2_4_1`
+5. `evl_NN_2_4_mid` and `evl_NN_2_4_late` does not show any improved performance,
+   - Could be due to decrease in training number
+
+#### Conclusion
+
+1. Continue on  `evl_NN_3_1_2_GD`
+
+2. Potential improvement:
+   - Adamoptimizer
+   - some changes in MomentumOptimizer, usually momentum = 0.9
+   - usually minibatch gradientDescent has batch_size = 100-256
+
+3. Try to integrate reinforcement learning
