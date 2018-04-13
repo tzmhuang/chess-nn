@@ -1,10 +1,10 @@
 '''
-Name: evl_NN_3_1_2_mid
+Name: evl_NN_2_4_mid
 Date: 13,Apr,2018
 Train on: Google VM
 Purpose:
         - Only include mid_game: 20 < n <=60
-        - Using one_hot representation
+        - based on evl_NN_2_4_1
         - using Xaviar initizlization
            - *var(W) = 2/[num_in]
 Config:
@@ -22,11 +22,11 @@ From bucket to terminal:
     gsutil cp gs://chess-nn/train_data.h5 ~/DNN
 
 Get graph/model:
-    gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/evl_NN_3_1_2_mid/ ./
+    gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/evl_NN_2_4_mid/ ./
 Get model:
     gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/model/... ./
 Reset:
-    rm ./DNN/graph/evl_NN_3_1_2_mid/*
+    rm ./DNN/graph/evl_NN_2_4_mid/*
 '''
 
 import tensorflow as tf
@@ -40,8 +40,8 @@ tf.reset_default_graph()
 #config
 # logs_path = "./chess_nn/evl_NN_2_4/graph"
 # saver_dir = "./chess_nn/evl_NN_2_4/model/evl_NN_2_4"
-logs_path = "./DNN/evl_NN_3_1_2_mid/graph"
-saver_dir = "./DNN/evl_NN_3_1_2_mid/model/evl_NN_3_1_2_mid"
+logs_path = "./DNN/evl_NN_2_4_mid/graph"
+saver_dir = "./DNN/evl_NN_2_4_mid/model/evl_NN_2_4_mid"
 
 
 
@@ -52,8 +52,8 @@ training_epochs = 5
 # train_h = h5py.File("//Volumes/DiskA/train_data.h5")
 # test_h = h5py.File("//Volumes/DiskA/test_data.h5")
 
-train_h = h5py.File("./DNN/train_data.h5")
-test_h = h5py.File("./DNN/test_data.h5")
+train_h = h5py.File("./DNN/train_h_mid.h5")
+test_h = h5py.File("./DNN/test_h_mid.h5")
 
 data_size = train_h['flag'].shape[0] + test_h['flag'].shape[0]
 partition_train = int(0.7*data_size)
@@ -72,14 +72,14 @@ def full_layer(input, W,b):
 def rand_batch(h5_ptr,batch_size, data_size):
     pos = random.randint(0, int(data_size/batch_size)-1) * batch_size
     #move_num = h5_ptr['move_num'][pos:pos+batch_size] #1
-    game_phase = h5_ptr['game_phase'][pos:pos+batch_size] #3
+    #game_phase = h5_ptr['game_phase'][pos:pos+batch_size] #3
     turn_move = h5_ptr['turn_move'][pos:pos+batch_size] #1
     castling = h5_ptr['castling'][pos:pos+batch_size] #4
     #board_set = h5_ptr['board_set'][pos:pos+batch_size] #64
     piece_pos = h5_ptr['piece_pos'][pos:pos+batch_size] #768
     atk_map = h5_ptr['atk_map'][pos:pos+batch_size] #768
     flag = h5_ptr['flag'][pos:pos+batch_size] #3
-    current_data = np.concatenate((game_phase,turn_move,castling,piece_pos,atk_map,flag), axis = 1)
+    current_data = np.concatenate((turn_move,castling,piece_pos,atk_map,flag), axis = 1)
     return current_data
 
 
@@ -132,7 +132,7 @@ def variable_summaries(var):
 global_step = tf.Variable(0, name='global_step',trainable=False)
 
 with tf.name_scope("input"):
-    x = tf.placeholder(tf.float32, name = "input", shape = [None,1544])
+    x = tf.placeholder(tf.float32, name = "input", shape = [None,1541])
     y_ = tf.placeholder(tf.float32, name = "flag",shape = [None,3])
 
 tf.summary.histogram('input_x',x)
@@ -141,7 +141,7 @@ tf.summary.histogram('input_x',x)
 
 with tf.name_scope("layer_0"):
     with tf.name_scope("weights_0"):
-        W_0 = weight_variable(1544,1544,"W_0")
+        W_0 = weight_variable(1541,1541,"W_0")
         variable_summaries(W_0)
     with tf.name_scope("bias_0"):
         b_0 = tf.Variable(initial_value =0.0,name = "b_0")
@@ -158,7 +158,7 @@ tf.summary.histogram("relu_0s",relu_0)
 
 with tf.name_scope("layer_1"):
     with tf.name_scope("weights_1"):
-        W_1 = weight_variable(1544,1544,"W_1")
+        W_1 = weight_variable(1541,1541,"W_1")
         variable_summaries(W_1)
     with tf.name_scope("bias_1"):
         b_1 = tf.Variable(initial_value =0.0,name = "b_1")
@@ -175,7 +175,7 @@ tf.summary.histogram("relu_1s",relu_1)
 
 with tf.name_scope("layer_2"):
     with tf.name_scope("weights_2"):
-        W_2 = weight_variable(1544,1544,"W_2")
+        W_2 = weight_variable(1541,1541,"W_2")
         variable_summaries(W_2)
     with tf.name_scope("bias_2"):
         b_2 = tf.Variable(initial_value =0.0,name = "b_2")
@@ -192,7 +192,7 @@ tf.summary.histogram("relu_2s",relu_2)
 
 with tf.name_scope("layer_3"):
     with tf.name_scope("weights_3"):
-        W_3 = weight_variable(1544,3,"W_3")
+        W_3 = weight_variable(1541,3,"W_3")
         variable_summaries(W_3)
     with tf.name_scope("bias_3"):
         b_3 = tf.Variable(initial_value =0.0,name = "b_3")
@@ -248,8 +248,8 @@ with tf.Session() as sess:
     test_writer = tf.summary.FileWriter(logs_path + '/test')
     sess.run(tf.global_variables_initializer())
     test_np = rand_batch(test_h,10000,partition_test)
-    test_x = test_np[:,0:1544]  #testing data
-    test_y = test_np[:,1544:1547] #testing data
+    test_x = test_np[:,0:1541]  #testing data
+    test_y = test_np[:,1541:1544] #testing data
     #writer  =  tf.summary.FileWriter ( logs_path , sess.graph)
     saver.save(sess, saver_dir, global_step=global_step ,write_meta_graph=True)
     for epochs in range(training_epochs):
@@ -257,8 +257,8 @@ with tf.Session() as sess:
         #print("2")
         for i in range(batch_count):
             batch = rand_batch(train_h, batch_size, partition_train)
-            train_x = batch[:,0:1544]    #training data
-            train_y = batch[:,1544:1547]   #training flag
+            train_x = batch[:,0:1541]    #training data
+            train_y = batch[:,1541:1544]   #training flag
             plt_train,cost,train_ac,_ = sess.run([merged,loss,accuracy,train_step], feed_dict={x: train_x,y_: train_y})
             #a,b,c,d,e,f = sess.run([Y_input,y_,tf.log(Y), y_ * tf.log(Y),-tf.reduce_sum(y_ * tf.log(Y), reduction_indices=[1]),tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(Y), reduction_indices=[1]))], feed_dict={x: data_x,y_: data_y})
             #ini,B,W,R = sess.run([tf.truncated_normal([1605,1605], stddev = 0.1),b_0,W_0,x], feed_dict={x: data_x,y_: data_y})

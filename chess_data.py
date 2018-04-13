@@ -40,7 +40,7 @@ gcloud compute copy-files ~/Desktop/Chess/data/piece_pos_data_check_1 nn-instanc
 gcloud compute copy-files ~/Desktop/Chess/data/game_move_num root@nn-instance1:/home/huangtom2/Chess --zone asia-east1-a
 
 gcloud compute scp ~/Desktop/Chess/data/game_move_num nn-instance1:/home/huangtom2/Chess
-# check maintanance 
+# check maintanance
 curl http://metadata.google.internal/computeMetadata/v1/instance/maintenance-event -H "Metadata-Flavor: Google"
 '''
 Meta data:
@@ -673,3 +673,39 @@ def moves_n():
     for i in range(40741,41738):
         a = train_data[train_data.game_num == i].move_num
         print (max(a))
+
+# select/filter from h5 dataset, and create new dataset
+def h5_select(h5_ptr, obj, new_dir):
+    h = h5py.File(new_dir)
+    obj_data = h5_ptr[obj][:]
+    logic = np.multiply(obj_data >20, obj_data <= 60)
+    #logic = obj_data > 60
+    ind = np.where(logic)[0]
+    print(ind)
+    move_num = h5_ptr['move_num'][:] #1
+    move_num = move_num[ind]
+    h['move_num'] = move_num
+    print(move_num)
+    game_phase = h5_ptr['game_phase'][:] #3
+    game_phase = game_phase[ind]
+    h['game_phase'] = game_phase
+    turn_move = h5_ptr['turn_move'][:] #1
+    turn_move = turn_move[ind]
+    h['turn_move'] = turn_move
+    castling = h5_ptr['castling'][:] #4
+    castling = castling[ind]
+    h['castling'] = castling
+    board_set = h5_ptr['board_set'][:] #64
+    board_set = board_set[ind]
+    h['board_set'] = board_set
+    piece_pos = h5_ptr['piece_pos'][:] #768
+    piece_pos = piece_pos[ind]
+    h['piece_pos'] = piece_pos
+    atk_map = h5_ptr['atk_map'][:] #768
+    atk_map = atk_map[ind]
+    h['atk_map'] = atk_map
+    flag = h5_ptr['flag'][:] #3
+    flag = flag[ind]
+    h['flag'] = flag
+    h.close()
+    return
