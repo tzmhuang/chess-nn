@@ -1,5 +1,5 @@
 '''
-Name: evl_NN_3_2
+Name: evl_NN_3_1_2
 Date: 13,Apr,2018
 Train on: Google VM
 Purpose:
@@ -23,7 +23,7 @@ From bucket to terminal:
     gsutil cp gs://chess-nn/train_data.h5 ~/DNN
 
 Get graph/model:
-    gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/evl_NN_3_1/ ./
+    gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/evl_NN_3_1_2/ ./
 Get model:
     gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/model/... ./
 Reset:
@@ -41,8 +41,8 @@ tf.reset_default_graph()
 #config
 # logs_path = "./chess_nn/evl_NN_2_4/graph"
 # saver_dir = "./chess_nn/evl_NN_2_4/model/evl_NN_2_4"
-logs_path = "./DNN/evl_NN_3_1/graph"
-saver_dir = "./DNN/evl_NN_3_1/model/evl_NN_3_1"
+logs_path = "./DNN/evl_NN_3_1_2/graph"
+saver_dir = "./DNN/evl_NN_3_1_2/model/evl_NN_3_1_2"
 
 
 
