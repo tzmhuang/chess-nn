@@ -1,10 +1,10 @@
 '''
-Name: evl_NN_3_1_2
+Name: evl_NN_3_1_2_mid
 Date: 13,Apr,2018
 Train on: Google VM
 Purpose:
+        - Only include mid_game: 20 < n <=60
         - Using one_hot representation
-        - Adding move_num as training input, hopefully help machine distinguish stages of game
         - using Xaviar initizlization
            - *var(W) = 2/[num_in]
 Config:
@@ -12,9 +12,8 @@ Config:
         - Epoch: 5
         - batch_size: 10000
         - Initialization: rand_normal [mean = 0, std = Xaviar]
-        - Training: MomentumOptimizer
+        - Training: GradientDescentOptimizer
         - Step_size: 0.0001
-        - Momentum_parameter: 0.5
 '''
 
 '''
@@ -23,11 +22,11 @@ From bucket to terminal:
     gsutil cp gs://chess-nn/train_data.h5 ~/DNN
 
 Get graph/model:
-    gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/evl_NN_3_1_2/ ./
+    gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/evl_NN_3_1_2_mid/ ./
 Get model:
     gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/model/... ./
 Reset:
-    rm ./DNN/graph/evl_NN_3_1/*
+    rm ./DNN/graph/evl_NN_3_1_2_mid/*
 '''
 
 import tensorflow as tf
@@ -41,8 +40,8 @@ tf.reset_default_graph()
 #config
 # logs_path = "./chess_nn/evl_NN_2_4/graph"
 # saver_dir = "./chess_nn/evl_NN_2_4/model/evl_NN_2_4"
-logs_path = "./DNN/evl_NN_3_1_2/graph"
-saver_dir = "./DNN/evl_NN_3_1_2/model/evl_NN_3_1_2"
+logs_path = "./DNN/evl_NN_3_1_2_mid/graph"
+saver_dir = "./DNN/evl_NN_3_1_2_mid/model/evl_NN_3_1_2_mid"
 
 
 
@@ -227,8 +226,8 @@ tf.summary.scalar("loss", loss)
 
 
 with tf.name_scope("train"):
-    #train_step = tf.train.GradientDescentOptimizer(0.0001).minimize(loss, global_step = global_step)
-    train_step = tf.train.MomentumOptimizer(1/global_step,0.5).minimize(loss,global_step = global_step)
+    train_step = tf.train.GradientDescentOptimizer(0.0001).minimize(loss, global_step = global_step)
+    #train_step = tf.train.MomentumOptimizer(1/global_step,0.5).minimize(loss,global_step = global_step)
 
 with tf.name_scope("accuracy"):
     accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(y_, axis = 1), pred),dtype = tf.float32))

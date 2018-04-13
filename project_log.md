@@ -8,10 +8,29 @@
     - saved as `evl_NN_3_1`
 
 4. Adding `evl_NN_3_2`
-   - Based on `evl_NN_3_1`, but with 10 hidden layers
+   - Based on `evl_NN_3_1`
+   - but with 10 hidden layers
 
 5. Adding `evl_NN_3_1_2`
-   - Based on `evl_NN_3_1` but using MomentumOptimizer
+   - Based on `evl_NN_3_1`
+   - MomentumOptimizer
+   - use `one-hot encoding` _(7)_
+   - Also trainined `evl_NN_3_1_2_GD` using GradientDescentOptimizer as control
+
+6. Adding `evl_NN_3_1_3`
+   - Based on `evl_NN_3_1`
+   - scaling move-num by 10e-2
+   - using MomentumOptimizer
+   - Also training `evl_NN_3_1_3_GD` using GradientDescentOptimizer as control
+
+7. Add create one-hot vector encoding game stage for game phase
+   - Opening `n <= 20`
+   - Mid-Game `20 < n <= 60`
+   - Endgame `n > 60(total_move_num)`
+
+8.  Adding `evl_NN_3_1_2_mid` and `evl_NN_3_1_2_late`
+   - Seperate mid and late game training
+
 
 #### results:
 1. `evl_NN_2_3_2` and `evl_NN_2_4_1` did not show improvement, they are instead, slight worse.
@@ -21,3 +40,14 @@
 
 2. `evl_NN_3_1` result not satisfactory
    - Potential problem: new variable too large, killing gradient
+
+3. `evl_NN_3_1_3` result worse than expected,
+   - cost plateau at 1.09 while accuracy hovers below 4.5 but has a steady increasing trend
+   - Much less fluctuation in loss comparing to `evl_NN_3_1`
+   - higher overall accuracy, but could due to the testing sample selection
+   - less training fluctuation in parameter
+   - slightly better activation
+   - strangly worse distinctive softmax output
+
+4. `evl_NN_3_1_2` result worse than expected
+   - `evl_NN_3_1_2_GD` shows potential, with cost reaching 1.05

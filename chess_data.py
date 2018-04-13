@@ -20,6 +20,8 @@ gsutil cp gs://chess-nn/data/atk_map_* /home/huangtom2/Chess
 #from VM to bucket?
 gsutil cp [LOCAL_OBJECT_LOCATION] gs://[DESTINATION_BUCKET_NAME]/
 gsutil cp  ~/Chess/499 gs://chess-nn/
+gsutil cp  ~/DNN gs://chess-nn/
+
 
 # from VM to local
 gcloud compute copy-files [INSTANCE_NAME]:[REMOTE_FILE_PATH] [LOCAL_FILE_PATH]
@@ -38,7 +40,8 @@ gcloud compute copy-files ~/Desktop/Chess/data/piece_pos_data_check_1 nn-instanc
 gcloud compute copy-files ~/Desktop/Chess/data/game_move_num root@nn-instance1:/home/huangtom2/Chess --zone asia-east1-a
 
 gcloud compute scp ~/Desktop/Chess/data/game_move_num nn-instance1:/home/huangtom2/Chess
-
+# check maintanance 
+curl http://metadata.google.internal/computeMetadata/v1/instance/maintenance-event -H "Metadata-Flavor: Google"
 '''
 Meta data:
     1. 41738 total games played
