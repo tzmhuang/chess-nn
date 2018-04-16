@@ -67,3 +67,38 @@
 3. Try to integrate reinforcement learning
 
 4. Set up google VM GPU to increase training speed
+
+
+## Date: 14/04/2018
+
+1. Train `evl_NN_3_mini_rand`
+   - use minibatch SGD with scattered random data selection
+   - first used original rand_batch function with batch size 256
+       - training rate: 0.001
+       - getting more volatile result, cost lowered to 0.89 but as high as 1.19
+   - Using more random approach in selecting data and reduce learning rate back to 0.0001
+
+#### results:
+1. `evl_NN_3_mini_rand` with 0.001 learning rate:
+   - Learning speed slow
+   - immense fluctuation
+   - not necessarily better result
+
+2. `evl_NN_3_mini_rand` with 0.0001 learning rate and batch size 512:
+   - learning speed/ running speed even slower:
+   - result meh..
+
+
+
+## Date: 15/04/2018
+
+1. Training `evl_NN_Adam`
+   - initial learning rate 0.001
+   - batch size 512
+   - other hyperparameter using default setup
+   - result pretty good, training cost ~0.5
+   - training accuracy >0.6
+   - interesting soft max pattern
+2. Training Training `evl_NN_Adam_2`
+   - usning more layers =6
+   - same setup
