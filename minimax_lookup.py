@@ -2,6 +2,7 @@ import chess
 import tensorflow as tf
 import numpy as np
 import h5py
+from collections import OrderedDict
 
 
 #board.legal_moves
@@ -14,6 +15,8 @@ piece_val = {'P':1, 'R':5, 'N':3, 'B':4, 'Q':9, 'K':100,
 
 piece_val_2 = {'P':1, 'R':5, 'N':3, 'B':4, 'Q':9, 'K':100,
              'p':-1, 'r':-5, 'n':-3, 'b':-4, 'q':-9, 'k':-100}
+
+piece_val_2 = OrderedDict(piece_val_2s)
 
 board_val_mp = {0:56, 1:57, 2:58, 3:59, 4:60, 5:61, 6:62, 7:63,
              8:48, 9:49, 10:50, 11:51, 12:52, 13:53, 14:54, 15:55,
@@ -97,15 +100,28 @@ def atk_map(board_state,board):
             output = np.concatenate((output, temp), axis = 1)
     return output
 
+
+def game_phase(board):
+    move_num = board.halfmove_clock
+    if move_num <= 20:
+        result = np.array([[1,0,0]])
+    elif move_num > 60:
+        result = np.array([[0,0,1]])
+    else:
+        result = np.array([[0,1,0]])
+    return result
+
+
 #done
 def extract(board):
+    g = game_phase(board)
     t = turn(board)
     c = castling(board)
     b = board_cvrt(board)
     p = piece_pos(b)
     a = atk_map(b,board)
     #result = np.concatenate((t,c,b,p,a), axis = 1)
-    result = np.concatenate((t,c,p,a), axis = 1)
+    result = np.concatenate((g,t,c,p,a), axis = 1)
     return result
 
 #determine if the state is leaf

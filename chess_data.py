@@ -709,3 +709,55 @@ def h5_select(h5_ptr, obj, new_dir):
     h['flag'] = flag
     h.close()
     return
+
+
+
+
+################################################################################
+'''
+1.Giving every uniq pos an index
+2.Group by pos --> count number of a-->b
+'''
+################################################################################
+piece_val = {'P':1, 'R':5, 'N':3, 'B':4, 'Q':9, 'K':100,
+             'p':-1, 'r':-5, 'n':-3, 'b':-4, 'q':-9, 'k':-100,
+             '.':0}
+
+def board_cvrt(board):
+    Data_row = np.empty([1,0], dtype=int) # initializing output of
+    board_str = str(board)
+    for piece in board_str:
+        if piece == ' ' or piece == '\n':
+            continue
+        else:
+            temp = np.array([[piece_val[piece]]])
+            Data_row = np.concatenate((Data_row,temp), axis = 1)
+    return Data_row
+
+
+def next_move(board):
+    result = np.empty([0,64], dtype=int)
+    for move in board.legal_moves:
+        tmp_board = board.copy()
+        tmp_board.push(move)
+        tmp = board_cvrt(tmp_board)
+        result = np.concatenate((result,tmp), axis = 0)
+    return result
+
+
+# Number of moves from board_a to board_b
+def nxtmv_count(data_np,board_a, board_b):
+    ind = np.where((data_np == board_a).sum(axis = 1) == 64)[0]
+    ind = ind+1
+    temp = data_np[ind]
+    count = ((temp == board_b).sum(axis = 1)== 64).sum()
+    return count
+
+def drichlet_count(data_np,board):
+    count = np.empty([0,1])
+    board_a = board_cvrt(board).reshape([64])
+    legal_move = next_move(board)
+    for board_b in legal_move:
+        tmp = nxtmv_count(data_np,board_a,board_b)
+        count = np.concatenate((count,np.array([[tmp]])), axis = 0)
+    return count

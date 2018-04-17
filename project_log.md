@@ -102,3 +102,6 @@
 2. Training Training `evl_NN_Adam_2`
    - usning more layers =6
    - same setup
+   - extreme weird result
+   - works after reducing initial learning rate,
+   - no significant improvement 
