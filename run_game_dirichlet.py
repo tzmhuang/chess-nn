@@ -13,24 +13,13 @@ sess = tf.Session()
 imported_meta.restore(sess, tf.train.latest_checkpoint('./chess_nn_result/evl_NN_Adam/model/'))
 # imported_meta.restore(sess, tf.train.latest_checkpoint('./DNN/evl_NN_Adam/model/'))
 graph = tf.get_default_graph()
-# W_0 = graph.get_tensor_by_name("layer_0/weights_0/W_0/read:0")
-# W_1 = tf.get_tensor_by_name("layer_1/weights_1:0")
-# W_2 = tf.get_tensor_by_name("layer_2/weights_2:0")
-# W_3 = tf.get_tensor_by_name("layer_3/weights_3:0")
-# b_0 = tf.get_tensor_by_name("layer_0/bias_0:0")
-# b_1 = tf.get_tensor_by_name("layer_1/bias_1:0")
-# b_2 = tf.get_tensor_by_name("layer_2/bias_2:0")
-# b_3 = tf.get_tensor_by_name("layer_3/bias_3:0")
 
-
-# graph = tf.get_default_graph()
 x = graph.get_tensor_by_name('input/input:0')
 '''Initiation Complete'''
 
 player_side = input("Please choose your side(b/w): ")
 
 difficulty = input("Choose Difficulty(1-10): ")
-
 board = chess.Board()
 #done? implement a-b pruning for memory saving
 def minimax_lookup(board, depth, alpha, beta, max_state):
@@ -74,8 +63,42 @@ def evaluate(in_data):
     Y = graph.get_tensor_by_name("prob/Softmax:0")
     epsilon = tf.constant(0.00000000001)
     v = sess.run(Y, feed_dict={x:in_data})
-    return v[0,0]+v[0,2]
-#prob of win+draw
+    return v[0,0]
+
+def get_val(board):
+    in_data = extract(board)
+    graph = tf.get_default_graph()
+    Y = graph.get_tensor_by_name("prob/Softmax:0")
+    epsilon = tf.constant(0.00000000001)
+    v = sess.run(Y, feed_dict={x:in_data})
+    return v
+
+
+# Number of moves from board_a to board_b
+def nxtmv_count(data_np,board_a, board_b):
+    ind = np.where((data_np == board_a).sum(axis = 1) == 64)[0]
+    ind = ind+1
+    temp = data_np[ind]
+    count = ((temp == board_b).sum(axis = 1)== 64).sum()
+    return count
+
+def next_move(board):
+    result = np.empty([0,64], dtype=int)
+    for move in board.legal_moves:
+        tmp_board = board.copy()
+        tmp_board.push(move)
+        tmp = board_cvrt(tmp_board)
+        result = np.concatenate((result,tmp), axis = 0)
+    return result
+
+def drichlet_count(data_np,board):
+    count = np.empty([0,1])
+    board_a = board_cvrt(board).reshape([64])
+    legal_move = next_move(board)
+    for board_b in legal_move:
+        tmp = nxtmv_count(data_np,board_a,board_b)
+        count = np.concatenate((count,np.array([[tmp]])), axis = 0)
+    return count
 
 
 def ai_move(board,depth, max_state):
@@ -85,7 +108,7 @@ def ai_move(board,depth, max_state):
         c_board = board.copy()
         c_board.push(moves)
         #already 1-st level
-        v = minimax_lookup(c_board,depth,float('-inf'),float('inf'), max_state) #careful with depth
+        v = minimax_lookup(c_board,depth,float('-inf'),float('inf'),not max_state) #careful with depth
         i+=1
         #print(i,moves)
         v_list = np.concatenate((v_list,np.array([[v]])), axis = 1)
@@ -95,6 +118,7 @@ def ai_move(board,depth, max_state):
 
 turn_dict = {'b':False , 'w':True}
 
+#prob of win+draw
 def game_start():
     while not board.is_game_over():
         print(board)
@@ -110,9 +134,13 @@ def game_start():
             print("Computer's Turn")
             print('Thinking...')
             if not turn_dict[player_side]: #ai is white
-                move = list(board.legal_moves)[np.argmax(ai_move(board,1,False))]
+                d = drichlet_count(data_np,board).reshape((1,list(board.legal_moves).__len__()))
+                v = d+ai_move(board,1,True)
+                move = list(board.legal_moves)[np.argmax(v)]
             else:# ai is black
-                move = list(board.legal_moves)[np.argmin(ai_move(board,1,True))]
+                d = drichlet_count(data_np,board).reshape((1,list(board.legal_moves).__len__()))
+                v = -d+ai_move(board,1,False)
+                move = list(board.legal_moves)[np.argmin(v)]
             board.push(move)
             print(move)
         if board.is_checkmate():

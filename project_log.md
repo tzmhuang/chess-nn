@@ -99,9 +99,106 @@
    - result pretty good, training cost ~0.5
    - training accuracy >0.6
    - interesting soft max pattern
+
 2. Training Training `evl_NN_Adam_2`
    - usning more layers =6
    - same setup
    - extreme weird result
    - works after reducing initial learning rate,
-   - no significant improvement 
+   - no significant improvement
+
+
+## Date: 15/04/2018
+
+1. Using evl_Adam for chess engine evaluation
+   - Differentiable probability output in very early game
+   - All state win probability goes to 1
+
+2. Training `evl_Adam_AE`
+   - Using auto encoder,
+   - Gradually decrease layer size: [1544,1000,500,3]
+   - removing game_phase variable
+   - batch size = 1024
+   - others same as evl_NN_Adam
+   - Could try autoencoder + auto decoder
+   - training loss minimized to 0.2 and can go lower
+   - testing accuracy no improvement
+   - softmax output extreme, 0 and 1s, little in between
+
+3. Training `evl_Adam_L2reg`
+   - based on `evl_Adam_AE`
+   - adding L2_regularization
+   - beta 0.01 () could be too large
+      - 0.01 training convergence low, but testing accuracy is better
+      - 0.001, training loss decreases, testing accuracy also decreases, tops at around 4.7
+   - trying to add back piece_val, but with scaling (x-min)/(max-min)
+
+4. Re-arrange atk_map
+   - Detecting problem with atk_map
+   - re-run data
+
+5. retrain `evl_Adam_L2reg` dropping atk_map data
+   -
+
+## Date: 21/04/2017
+
+1. Batch Normalization
+
+2. how do tf.layer.conv2d initialize
+
+3. ReLu naturally enforce sparsity?
+
+4. Better loss function?
+
+5. Adam? is it required
+
+## Date: 23/04/2017
+
+1. Installed GPU on instance1
+   - installed `CUDO 9.1` with `cuNN 7.1.3`
+   - rebuild tensorflow from bazel with gpu implementation
+      - see http://www.python36.com/install-tensorflow141-gpu/
+      - process parallel over CPU
+      - 4cpu takes 5000+ sec
+      - DONE
+
+2. trying training on GPU using `evl_conv_temp`
+   - Monitor GPU usage:
+      - `nvidia-smi`
+   - Using GPU Success:
+      - Speed increased by 10x
+   - accuracy = 0.4227669, global_step = 23287, loss = 1.0676591
+
+3. Trainnig `evl_conv_1`
+   - training on
+      - `NVIDIA K80` + 4 CPU
+   - AdamOptimizer
+   - 3 conv layer with 128 filter, 2 dense layer,
+   - adding single filter conv layer before dense
+   - batch size 512
+   - accuracy = 0.4227669, global_step = 23287, loss = 1.0730845
+
+
+4. Trainnig `evl_conv_2`
+   - using `GradientDescentOptimizer`
+   - training on
+      - `NVIDIA K80` + 4 CPU
+   - 3 conv layer with 128 filter, 2 dense layer,
+   - adding single filter conv layer before dense
+   - batch size 512
+   - accuracy = 0.42275614, global_step = 23287, loss = 1.0645185
+
+5. Re-train `evl_conv_1`
+   - using 0.0001 as initialized AdamOptimizer
+   - batch_size = 1024
+   - accuracy = 0.47654992, global_step = 11644, loss = 1.0147022
+
+6. Trainnig `evl_conv_2`
+   - using `AdamOptimizer` w 0.0001
+   - training on
+      - `NVIDIA K80` + 4 CPU
+   - 3 conv layer with 128 filter, 2 dense layer,
+   - With batch normalization
+   - adding single filter conv layer before dense
+   - batch size 1024
+   - accuracy = 0.47183543, global_step = 11645, loss = 1.0219235

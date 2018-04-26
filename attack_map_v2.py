@@ -6,6 +6,7 @@ import chess.pgn
 import pandas as pd
 import h5py
 from io import StringIO
+from collections import OrderedDict
 
 
 
@@ -19,8 +20,9 @@ board_val_mp = {0:56, 1:57, 2:58, 3:59, 4:60, 5:61, 6:62, 7:63,
              56:0, 57:1 ,58:2, 59:3, 60:4, 61:5, 62:6, 63:7}
 
 
-piece_val_2 = {'P':1, 'R':5, 'N':3, 'B':4, 'Q':9, 'K':100,
-             'p':-1, 'r':-5, 'n':-3, 'b':-4, 'q':-9, 'k':-100}
+piece_val_2 = OrderedDict((('P',1), ('R',5), ('N',3), ('B',4), ('Q',9), ('K',100),
+             ('p',-1), ('r',-5), ('n',-3), ('b',-4), ('q',-9), ('k',-100)))
+
 
 
 def attack_map(board,train_data,g_num, m_num):
@@ -74,7 +76,7 @@ def attack_map_df(pgn_df):
 ##parallel_no.: 4   Range:	10000-11060
 data = pd.read_csv("Desktop/Chess/pgn_data_titled_2013", index_col = 0) ##parallel number
 data =  data.iloc[41737:41738,:]		##set range
-train_data = pd.read_csv("Desktop/Chess/data/train_data_2013_v2", index_col = 0)  ##parallel number
+train_data = pd.read_csv("Desktop/Chess/train_data_v2", index_col = 0)  ##parallel number
 s_n = min(train_data[train_data.game_num == 41737].index)  ##change game_num
 e_n = max(train_data[train_data.game_num == 41738].index)	##change game_num
 train_data = train_data.iloc[s_n:e_n+1,:]   ##set range

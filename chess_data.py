@@ -13,9 +13,22 @@ gsutil cp gs://chess-nn/pgn_data_titled_2013 ~/Chess
 gsutil cp gs://chess-nn/data ~/Chess
 gsutil cp gs://chess-nn/data/train_data_2013 ~/Chess
 gsutil cp gs://chess-nn/data/atk_map_* /home/huangtom2/Chess
+gsutil cp gs://chess-nn/libcudnn7-dev_7.1.3.16-1+cuda8.0_amd64.deb	 ~/
+gsutil cp gs://chess-nn/libcudnn7_7.1.3.16-1+cuda8.0_amd64.deb	 ~/
+
+gsutil cp gs://chess-nn/cuDNN/libcudnn7_7.1.3.16-1+cuda9.1_amd64.deb	 ~/
+gsutil cp gs://chess-nn/cuDNN/libcudnn7-dev_7.1.3.16-1+cuda9.1_amd64.deb	 ~/
+gsutil cp gs://chess-nn/cuDNN/libcudnn7-doc_7.1.3.16-1+cuda9.1_amd64.deb ~/
 
 
 
+
+##set up CUDA-nn
+sudo dpkg -i libcudnn7-dev_7.1.3.16-1+cuda8.0_amd64.deb
+sudo dpkg -i libcudnn7_7.1.3.16-1+cuda8.0_amd64.deb
+sudo apt-get install cuda-command-line-tools
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/extras/CUPTI/lib64
 
 #from VM to bucket?
 gsutil cp [LOCAL_OBJECT_LOCATION] gs://[DESTINATION_BUCKET_NAME]/
@@ -33,6 +46,9 @@ gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/game_move_num_* ~/D
 gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/at* ~/Desktop/Chess/data
 gcloud compute copy-files nn-instance1:/home/huangtom2/chess_data.gz ~/Desktop/Chess/data
 gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/flag.npy ~/Desktop
+gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/evl_conv_1 ./
+
+
 
 #from local to VM
 gcloud compute scp [LOCAL_FILE_PATH] [INSTANCE_NAME]:~/
@@ -66,7 +82,7 @@ def pgn_file_reader(file_dir):
         if line == "":
             line_br_detector += 1
         if line_br_detector%2 != 0:
-            temp0 = pd.Series(line)
+            temp1 = pd.Series(line)
         if line_br_detector > 0 and line_br_detector%2 == 0:
             pgn_data_frame = pgn_data_frame.append(temp1, ignore_index=True)
             temp1 = pd.Series()
@@ -76,6 +92,42 @@ def pgn_file_reader(file_dir):
         #temp1 = temp1.append(temp0, ignore_index=True)
     pgn.close()
     return pgn_data_frame
+
+
+#altered, extract head information
+def pgn_file_reader(file_dir):
+    pgn = open(file_dir)
+    line_br_detector = False
+    pgn_data_frame = pd.DataFrame()
+    #temp1 = pd.Series()
+    temp0 = ''
+    for line in pgn.read().splitlines():                                        #Forming DataFrame with Pandas
+        if line == "":
+            #print (0)
+            line_br_detector  = not line_br_detector
+        if line_br_detector:
+            #print (1)
+            pgn_data_frame = pgn_data_frame.append(temp0, ignore_index=True)
+            temp0 = ''
+            line_br_detector  = not line_br_detector
+            #temp1 = pd.Series()
+        else:
+            #print (2)
+            temp0 = temp0+'\n'+line
+            temp0 = pd.Series(temp0)
+            #temp1 = temp1.append(temp0,ignore_index = True)
+            continue
+        #temp0 = pd.Series(line)
+        #temp1 = temp1.append(temp0, ignore_index=True)
+    pgn.close()
+    return pgn_data_frame
+
+
+
+
+def
+
+
 
 pgn_data = pgn_file_reader("Desktop/Chess/ficsgamesdb_201701_standard_nomovetimes_1511264.pgn")
 
@@ -101,9 +153,22 @@ def check_counter(pgn_df):
     return count
 
 
+def elo_extract(header_np):
+    result = np.empty([0,2])
+    for i in range(header_np.size):
+        pgn_string = header_np[i,0]
+        pgn = StringIO(pgn_string)
+        game = chess.pgn.read_game(pgn)
+        black_elo = int(game.headers['BlackElo'])
+        white_elo = int(game.headers['WhiteElo'])
+        tmp = np.concatenate((np.array([[white_elo]]),np.array([[black_elo]])), axis = 1)
+        result = np.concatenate((result,tmp), axis = 0)
+    return result
 
-pgn_string = DataX[18][i]
-game = chess.pgn.read_game(StringIO(game_string))
+
+
+elo2000 = (black_elo>=2000) *(white_elo>=2000)
+np.where(train_game_num in ind2000)
 
 
 piece_val = {'P':1, 'R':5, 'N':3, 'B':4, 'Q':9, 'K':100,
