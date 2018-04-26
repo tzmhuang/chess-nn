@@ -56,7 +56,7 @@ batch_size = 1024
 training_epochs = 15
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('model_dir',"./DNN/evl_conv_3/",'dir of model stored' )
+tf.app.flags.DEFINE_string('model_dir',"./DNN/evl_conv_4/",'dir of model stored' )
 tf.app.flags.DEFINE_integer('train_data_size',partition_train, 'size of training data')
 tf.app.flags.DEFINE_integer('test_data_size',partition_test, 'size of testing data')
 tf.app.flags.DEFINE_integer('batch_size',batch_size, 'mini batch size' )
@@ -222,11 +222,8 @@ with tf.device('/gpu:0'):
 
 #test_data = h5_by_ind(test_h,ind)
 test_data = h5_get(test_h,0,int(FLAGS.train_data_size/5)).astype('float32')
-test_x = test_data[:,0:1856]
-test_y = test_data[:,1856:1860]
-
-test_x = data_late[:,0:1920]
-test_y = data_late[:,1920:1923]
+test_x = test_data[:,0:1920]
+test_y = test_data[:,1920:1923]
 
 eval_input_fn = tf.estimator.inputs.numpy_input_fn(
     x = {'x':test_x},
