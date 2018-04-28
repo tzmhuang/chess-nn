@@ -827,3 +827,13 @@ def drichlet_count(data_np,board):
         tmp = nxtmv_count(data_np,board_a,board_b)
         count = np.concatenate((count,np.array([[tmp]])), axis = 0)
     return count
+
+
+
+tmp = data_x.reshape(-1,240,8)
+result = np.empty([0,8,8,30])
+for i in range(0,tmp.shape[0]):
+    temp = tmp[i,:,:]
+    temp = temp.reshape(30,8,8).transpose().reshape(1,8,8,30)
+    result = np.concatenate((result,temp), axis = 0)
+    if i%1000 == 0: print (i)
