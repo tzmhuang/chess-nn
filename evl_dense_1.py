@@ -1,5 +1,5 @@
 '''
-Name: evl_dense_0
+Name: evl_dense_1_bn
 Date: 25,Apr,2018
 Train on: Google VM, 4 CPU + NVIDIA K80 GPU
 Purpose:
@@ -56,7 +56,7 @@ batch_size = 1024
 training_epochs = 15
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('model_dir',"./DNN/evl_dense_0/",'dir of model stored' )
+tf.app.flags.DEFINE_string('model_dir',"./DNN/evl_dense_1_bn/",'dir of model stored' )
 tf.app.flags.DEFINE_integer('train_data_size',partition_train, 'size of training data')
 tf.app.flags.DEFINE_integer('test_data_size',partition_test, 'size of testing data')
 tf.app.flags.DEFINE_integer('batch_size',batch_size, 'mini batch size' )
@@ -114,13 +114,16 @@ def model_fn(features, labels, mode):
         with tf.name_scope("pre_activate_0"):
             a_0 = full_layer(input_layer, W_0, b_0)
             tf.summary.histogram("a_0",a_0)
+    bn0 = tf.layers.batch_normalization(
+            inputs = a_0, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN0')
     with tf.name_scope("relu_0"):
-        relu_0 = tf.nn.relu(a_0)
+        relu_0 = tf.nn.relu(bn0)
     tf.summary.histogram("relu_0s",relu_0)
+    tf.summary.histogram("bn0",bn0)
     #layer_2
     with tf.name_scope("layer_1"):
         with tf.name_scope("weights_1"):
-            W_1 = weight_variable(1541,1541,"W_1")
+            W_1 = weight_variable(1541,1024,"W_1")
             variable_summaries(W_1)
         with tf.name_scope("bias_1"):
             b_1 = tf.Variable(initial_value =0.0,name = "b_1")
@@ -128,49 +131,42 @@ def model_fn(features, labels, mode):
         with tf.name_scope("pre_activate_1"):
             a_1 = full_layer(relu_0, W_1, b_1)
             tf.summary.histogram("a_1",a_1)
+    bn1 = tf.layers.batch_normalization(
+            inputs = a_1, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN1')
     with tf.name_scope("relu_1"):
-        relu_1 = tf.nn.relu(a_1)
+        relu_1 = tf.nn.relu(bn1)
     tf.summary.histogram("relu_1s",relu_1)
+    tf.summary.histogram("bn1",bn1)
+    dropout_1 = tf.layers.dropout(inputs=relu_1, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN, name = 'Dropout_1')
     #layer_3
     with tf.name_scope("layer_2"):
         with tf.name_scope("weights_2"):
-            W_2 = weight_variable(1541,1541,"W_2")
+            W_2 = weight_variable(1024,512,"W_2")
             variable_summaries(W_2)
         with tf.name_scope("bias_2"):
             b_2 = tf.Variable(initial_value =0.0,name = "b_2")
             variable_summaries(b_2)
         with tf.name_scope("pre_activate_2"):
-            a_2 = full_layer(relu_1, W_2, b_2)
+            a_2 = full_layer(dropout_1, W_2, b_2)
             tf.summary.histogram("a_2",a_2)
+    bn2 = tf.layers.batch_normalization(
+            inputs = a_2, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN2')
     with tf.name_scope("relu_2"):
-        relu_2 = tf.nn.relu(a_2)
+        relu_2 = tf.nn.relu(bn2)
     tf.summary.histogram("relu_2s",relu_2)
-    #layer_4
-    with tf.name_scope("layer_3"):
-        with tf.name_scope("weights_3"):
-            W_3 = weight_variable(1541,1541,"W_3")
-            variable_summaries(W_3)
-        with tf.name_scope("bias_3"):
-            b_3 = tf.Variable(initial_value =0.0,name = "b_3")
-            variable_summaries(b_3)
-        with tf.name_scope("pre_activate_3"):
-            a_3 = full_layer(relu_2, W_3, b_3)
-            tf.summary.histogram("a_3",a_3)
-    with tf.name_scope("relu_3"):
-        relu_3 = tf.nn.relu(a_3)
-    tf.summary.histogram("relu_3s",relu_3)
+    tf.summary.histogram("bn2",bn2)
     #droupout
-    dropout = tf.layers.dropout(inputs=relu_3, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN, name = 'Dropout')
+    dropout_2 = tf.layers.dropout(inputs=relu_2, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN, name = 'Dropout_2')
     ##logits
     with tf.name_scope("logits"):
         with tf.name_scope("weights_4"):
-            W_4 = weight_variable(1541,3,"W_4")
+            W_4 = weight_variable(512,3,"W_4")
             variable_summaries(W_4)
         with tf.name_scope("bias_4"):
             b_4 = tf.Variable(initial_value =0.0,name = "b_4")
             variable_summaries(b_4)
         with tf.name_scope("logit"):
-            logit = full_layer(dropout, W_4, b_4)
+            logit = full_layer(dropout_2, W_4, b_4)
             tf.summary.histogram("logit",logit)
     predictions = {
         'classes': tf.argmax(input=logit, axis=1, name='classes'),
@@ -182,8 +178,7 @@ def model_fn(features, labels, mode):
     #loss_function
     with tf.name_scope("Loss"):
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits( labels = tf.argmax(labels,1) ,logits = logit)
-        l2_loss = 0.0001*(tf.nn.l2_loss(W_0)+tf.nn.l2_loss(W_1)+tf.nn.l2_loss(W_2)+
-                tf.nn.l2_loss(W_3)+tf.nn.l2_loss(W_4))
+        l2_loss = 0.001*(tf.nn.l2_loss(W_0)+tf.nn.l2_loss(W_1)+tf.nn.l2_loss(W_2)+tf.nn.l2_loss(W_4))
         loss = tf.reduce_mean(cross_entropy, name = 'mean_loss') + l2_loss
     tf.summary.scalar('training_loss', loss)
     #Assess Accuracy
@@ -239,7 +234,7 @@ logging_hook = tf.train.LoggingTensorHook(
 #training on gpu
 with tf.device('/gpu:0'):
     evl_conv_temp = tf.estimator.Estimator(
-        model_fn = model_fn, model_dir = "./DNN/evl_dense_1/")
+        model_fn = model_fn, model_dir ="./DNN/evl_dense_1_bn/")
 
 #evl_conv_temp.train(
 #    input_fn = train_input_fn,hooks = [logging_hook])

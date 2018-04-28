@@ -13,6 +13,7 @@ gsutil cp gs://chess-nn/pgn_data_titled_2013 ~/Chess
 gsutil cp gs://chess-nn/data ~/Chess
 gsutil cp gs://chess-nn/data/train_data_2013 ~/Chess
 gsutil cp gs://chess-nn/data/atk_map_* /home/huangtom2/Chess
+
 gsutil cp gs://chess-nn/libcudnn7-dev_7.1.3.16-1+cuda8.0_amd64.deb	 ~/
 gsutil cp gs://chess-nn/libcudnn7_7.1.3.16-1+cuda8.0_amd64.deb	 ~/
 

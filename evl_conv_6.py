@@ -1,12 +1,12 @@
 '''
-Name: evl_dense_0
-Date: 25,Apr,2018
+Name: evl_conv_6
+Date: 23,Apr,2018
 Train on: Google VM, 4 CPU + NVIDIA K80 GPU
 Purpose:
         - Adamoptimizer
         - add batch normalization
-        - using batch size: 512
-        - added filter = 128
+        - using batch size: 1024
+        - added filter = 256
         - using more random sample, shuffle -> iter from start
             - failed due to memory error
             - retry with another implementation
@@ -56,7 +56,7 @@ batch_size = 1024
 training_epochs = 15
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('model_dir',"./DNN/evl_dense_0/",'dir of model stored' )
+tf.app.flags.DEFINE_string('model_dir',"./DNN/evl_conv_5/",'dir of model stored' )
 tf.app.flags.DEFINE_integer('train_data_size',partition_train, 'size of training data')
 tf.app.flags.DEFINE_integer('test_data_size',partition_test, 'size of testing data')
 tf.app.flags.DEFINE_integer('batch_size',batch_size, 'mini batch size' )
@@ -66,20 +66,38 @@ tf.app.flags.DEFINE_integer('epoch',training_epochs, 'total epoch trained')
 
 def h5_get(h5_ptr,start,fin):
     #move_num = h5_ptr['move_num'][pos:pos+batch_size] #1
-    #game_phase = h5_ptr['game_phase'][ind] #3
-    turn_move = h5_ptr['turn_move'][start:fin] #1
-    #turn_move_conv = h5_ptr['turn_move_conv'][start:fin]
-    castling = h5_ptr['castling'][start:fin] #4
-    #castling_conv = h5_ptr['castling_conv'][start:fin]
-    #castling_conv = castling_conv.reshape((-1,256))
-    #board_set = h5_ptr['board_set'][pos:pos+batch_size] #64
+    game_phase = h5_ptr['game_phase'][start:fin] #3
+    for i in range(64)
+        game_phase_conv = np.concatenate((game_phase,game_phase),axis = 1)
+    del(game_phase)
+    #turn_move = h5_ptr['turn_move'][ind] #1
+    turn_move_conv = h5_ptr['turn_move_conv'][start:fin]
+    #castling = h5_ptr['castling'][ind] #4
+    castling_conv = h5_ptr['castling_conv'][start:fin]
+    castling_conv = castling_conv.reshape((-1,256))
+    board_set = h5_ptr['board_set'][start:fin] #64
     piece_pos = h5_ptr['piece_pos'][start:fin] #768   (12,8,8)
     atk_map = h5_ptr['atk_map'][start:fin] #768
     flag = h5_ptr['flag'][start:fin] #3
-    current_data = np.concatenate((turn_move,castling,piece_pos,atk_map,flag), axis = 1)
-    del(turn_move,castling,piece_pos,atk_map)
+    current_data = np.concatenate((board_set,piece_pos,atk_map,turn_move_conv,game_phase_conv,castling_conv,flag), axis = 1)
+    del(turn_move_conv,castling_conv,piece_pos)
     return current_data
 
+def h5_by_ind(h5_ptr,ind):
+    #move_num = h5_ptr['move_num'][pos:pos+batch_size] #1
+    #game_phase = h5_ptr['game_phase'][ind] #3
+    #turn_move = h5_ptr['turn_move'][ind] #1
+    turn_move_conv = h5_ptr['turn_move_conv'][ind]
+    #castling = h5_ptr['castling'][ind] #4
+    castling_conv = h5_ptr['castling_conv'][ind]
+    castling_conv = castling_conv.reshape((-1,256))
+    #board_set = h5_ptr['board_set'][pos:pos+batch_size] #64
+    piece_pos = h5_ptr['piece_pos'][ind] #768   (12,8,8)
+    atk_map = h5_ptr['atk_map'][ind] #768
+    flag = h5_ptr['flag'][ind] #3
+    current_data = np.concatenate((piece_pos,atk_map,turn_move_conv,castling_conv,flag), axis = 1)
+    del(turn_move_conv,castling_conv,piece_pos)
+    return current_data
 
 def variable_summaries(var):
     with tf.name_scope('summaries'):
@@ -92,86 +110,57 @@ def variable_summaries(var):
         tf.summary.scalar('min', tf.reduce_min(var))
         tf.summary.histogram('histogram', var)
 
-def weight_variable(r_num, c_num, name):
-    initial = tf.truncated_normal([r_num,c_num], stddev = tf.sqrt(2/r_num))
-    return tf.Variable(initial, name = name)
-
-def full_layer(input, W,b):
-    return tf.matmul(input, W) + b
 
 
 def model_fn(features, labels, mode):
-    #input
-    input_layer = features['x']
-    #layer_1
-    with tf.name_scope("layer_0"):
-        with tf.name_scope("weights_0"):
-            W_0 = weight_variable(1541,1541,"W_0")
-            variable_summaries(W_0)
-        with tf.name_scope("bias_0"):
-            b_0 = tf.Variable(initial_value =0.0,name = "b_0")
-            variable_summaries(b_0)
-        with tf.name_scope("pre_activate_0"):
-            a_0 = full_layer(input_layer, W_0, b_0)
-            tf.summary.histogram("a_0",a_0)
-    with tf.name_scope("relu_0"):
-        relu_0 = tf.nn.relu(a_0)
-    tf.summary.histogram("relu_0s",relu_0)
-    #layer_2
-    with tf.name_scope("layer_1"):
-        with tf.name_scope("weights_1"):
-            W_1 = weight_variable(1541,1541,"W_1")
-            variable_summaries(W_1)
-        with tf.name_scope("bias_1"):
-            b_1 = tf.Variable(initial_value =0.0,name = "b_1")
-            variable_summaries(b_1)
-        with tf.name_scope("pre_activate_1"):
-            a_1 = full_layer(relu_0, W_1, b_1)
-            tf.summary.histogram("a_1",a_1)
-    with tf.name_scope("relu_1"):
-        relu_1 = tf.nn.relu(a_1)
-    tf.summary.histogram("relu_1s",relu_1)
-    #layer_3
-    with tf.name_scope("layer_2"):
-        with tf.name_scope("weights_2"):
-            W_2 = weight_variable(1541,1541,"W_2")
-            variable_summaries(W_2)
-        with tf.name_scope("bias_2"):
-            b_2 = tf.Variable(initial_value =0.0,name = "b_2")
-            variable_summaries(b_2)
-        with tf.name_scope("pre_activate_2"):
-            a_2 = full_layer(relu_1, W_2, b_2)
-            tf.summary.histogram("a_2",a_2)
-    with tf.name_scope("relu_2"):
-        relu_2 = tf.nn.relu(a_2)
-    tf.summary.histogram("relu_2s",relu_2)
-    #layer_4
-    with tf.name_scope("layer_3"):
-        with tf.name_scope("weights_3"):
-            W_3 = weight_variable(1541,1541,"W_3")
-            variable_summaries(W_3)
-        with tf.name_scope("bias_3"):
-            b_3 = tf.Variable(initial_value =0.0,name = "b_3")
-            variable_summaries(b_3)
-        with tf.name_scope("pre_activate_3"):
-            a_3 = full_layer(relu_2, W_3, b_3)
-            tf.summary.histogram("a_3",a_3)
-    with tf.name_scope("relu_3"):
-        relu_3 = tf.nn.relu(a_3)
-    tf.summary.histogram("relu_3s",relu_3)
-    #droupout
-    dropout = tf.layers.dropout(inputs=relu_3, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN, name = 'Dropout')
-    ##logits
-    with tf.name_scope("logits"):
-        with tf.name_scope("weights_4"):
-            W_4 = weight_variable(1541,3,"W_4")
-            variable_summaries(W_4)
-        with tf.name_scope("bias_4"):
-            b_4 = tf.Variable(initial_value =0.0,name = "b_4")
-            variable_summaries(b_4)
-        with tf.name_scope("logit"):
-            logit = full_layer(dropout, W_4, b_4)
-            tf.summary.histogram("logit",logit)
+    #input and reshape
+    input_layer = tf.reshape(features['x'],[-1,8,8,31])
+    #conv1
+    bn0 = tf.layers.batch_normalization(
+            inputs = input_layer, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN0')
+    conv1 = tf.layers.conv2d(inputs=input_layer,filters=256,kernel_size=[1, 1],
+            padding="same",activation=None,kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),name='CONV1')
+    bn1 = tf.layers.batch_normalization(
+            inputs = conv1, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN1')
+    relu1 = tf.nn.relu(bn1, name = 'relu1')
+    tf.summary.histogram('conv1', conv1)
+    tf.summary.histogram('relu1', relu1)
+    #tf.summary.histogram('BN1', bn1)
+    #bn1 = tf.layers.batch_normalization(input = conv1,training=mode == tf.estimator.ModeKeys.TRAIN,name='BN1')
+    #conv2
+    conv2 = tf.layers.conv2d(inputs=relu1, filters=256, kernel_size=[1, 1],
+            padding="same", activation=None,kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),name='CONV2')
+    bn2 = tf.layers.batch_normalization(
+            inputs = conv2, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN2')
+    relu2 = tf.nn.relu(bn2, name = 'relu2')
+    tf.summary.histogram('conv2', conv2)
+    tf.summary.histogram('relu2', relu2)
+    #tf.summary.histogram('BN2', bn2)
+    #conv3
+    conv3 = tf.layers.conv2d(inputs=relu2, filters=256, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),kernel_size=[1, 1],
+            padding="same", activation=None,name='CONV3')
+    bn3 = tf.layers.batch_normalization(
+            inputs = conv3, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN3')
+    relu3 = tf.nn.relu(bn3, name = 'relu3')
+    tf.summary.histogram('conv3', conv3)
+    tf.summary.histogram('relu3', relu3)
+    #tf.summary.histogram('BN4', bn4)
+    conv4 = tf.layers.conv2d(inputs=relu3, filters=1, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),kernel_size=[1, 1],
+            padding="same", activation=None,name='CONV3')
+    bn4 = tf.layers.batch_normalization(
+            inputs = conv4, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN4')
+    relu4 = tf.nn.relu(bn4, name = 'relu4')
+    tf.summary.histogram('conv4', conv4)
+    tf.summary.histogram('relu4', relu4)
+    #dense_layer
+    flattern = tf.reshape(relu3, [-1,8*8])
+    dense_1 = tf.layers.dense(inputs=flattern, units=64,kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001), name='DENSE_1')
+    relu_final = tf.nn.relu(dense_1,name = 'relu_final')
+    tf.summary.histogram('relu_final', relu_final)
+    #tf.summary.histogram('flat', flattern)
+    logit = tf.layers.dense(inputs=relu_final, units=3, name='FINAL')
+    # dropout = tf.layers.dropout(
+    #   inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
     predictions = {
         'classes': tf.argmax(input=logit, axis=1, name='classes'),
         'probabilities': tf.nn.softmax(logit, name='softmax_tensor')
@@ -182,8 +171,7 @@ def model_fn(features, labels, mode):
     #loss_function
     with tf.name_scope("Loss"):
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits( labels = tf.argmax(labels,1) ,logits = logit)
-        l2_loss = 0.0001*(tf.nn.l2_loss(W_0)+tf.nn.l2_loss(W_1)+tf.nn.l2_loss(W_2)+
-                tf.nn.l2_loss(W_3)+tf.nn.l2_loss(W_4))
+        l2_loss = tf.losses.get_regularization_loss(name='total_regularization_loss')
         loss = tf.reduce_mean(cross_entropy, name = 'mean_loss') + l2_loss
     tf.summary.scalar('training_loss', loss)
     #Assess Accuracy
@@ -196,7 +184,7 @@ def model_fn(features, labels, mode):
     #training_operation
     if mode == tf.estimator.ModeKeys.TRAIN:
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        optimizer = tf.train.AdamOptimizer(learning_rate = 0.0001)
+        optimizer = tf.train.AdamOptimizer(learning_rate = 0.01)
         with tf.control_dependencies(update_ops):
             train_op = optimizer.minimize(loss = loss, global_step = tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
@@ -219,8 +207,8 @@ data_2 = h5_get(train_h,int(FLAGS.train_data_size/2),FLAGS.train_data_size).asty
 data_1 = np.concatenate((data_1,data_2),axis = 0)
 del(data_2)
 
-data_x = data_1[:,0:1541]
-data_y = data_1[:,1541:1544]
+data_x = data_1[:,0:1984]
+data_y = data_1[:,1984:1987]
 
 train_input_fn = tf.estimator.inputs.numpy_input_fn(
     x = {'x':data_x},
@@ -239,15 +227,15 @@ logging_hook = tf.train.LoggingTensorHook(
 #training on gpu
 with tf.device('/gpu:0'):
     evl_conv_temp = tf.estimator.Estimator(
-        model_fn = model_fn, model_dir = "./DNN/evl_dense_1/")
+        model_fn = model_fn, model_dir = FLAGS.model_dir)
 
 #evl_conv_temp.train(
 #    input_fn = train_input_fn,hooks = [logging_hook])
 
-
+#test_data = h5_by_ind(test_h,ind)
 test_data = h5_get(test_h,0,int(FLAGS.train_data_size/5)).astype('float32')
-test_x = test_data[:,0:1541]
-test_y = test_data[:,1541:1544]
+test_x = test_data[:,0:1984]
+test_y = test_data[:,1984:1987]
 
 eval_input_fn = tf.estimator.inputs.numpy_input_fn(
     x = {'x':test_x},

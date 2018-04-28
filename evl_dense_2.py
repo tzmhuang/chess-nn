@@ -1,42 +1,3 @@
-'''
-Name: evl_dense_0
-Date: 25,Apr,2018
-Train on: Google VM, 4 CPU + NVIDIA K80 GPU
-Purpose:
-        - Adamoptimizer
-        - add batch normalization
-        - using batch size: 512
-        - added filter = 128
-        - using more random sample, shuffle -> iter from start
-            - failed due to memory error
-            - retry with another implementation
-        - Using one_hot representation
-        - Adding move_num as training input, hopefully help machine distinguish stages of game
-        - using uniform Xaviar initizlization
-Config:
-        - Epoch: 15
-        - batch_size: 1024
-        - Training: Adamoptimizer
-        - learning rate: 0.001
-        - beta 0.01
-        - beta1 = 0.9
-        - beta2 = 0.999
-'''
-
-'''
-From bucket to terminal:
-    gsutil cp gs://chess-nn/test_data.h5 ~/DNN
-    gsutil cp gs://chess-nn/train_data.h5 ~/DNN
-
-Get graph/model:
-    gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/evl_conv_temp/ ./
-Get model:
-    gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/model/... ./
-Reset:
-    rm -r ./DNN/evl_conv_temp
-'''
-
-
 import tensorflow as tf
 import numpy as np
 import random
@@ -56,7 +17,7 @@ batch_size = 1024
 training_epochs = 15
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('model_dir',"./DNN/evl_dense_0/",'dir of model stored' )
+tf.app.flags.DEFINE_string('model_dir',"./DNN/evl_dense_2/",'dir of model stored' )
 tf.app.flags.DEFINE_integer('train_data_size',partition_train, 'size of training data')
 tf.app.flags.DEFINE_integer('test_data_size',partition_test, 'size of testing data')
 tf.app.flags.DEFINE_integer('batch_size',batch_size, 'mini batch size' )
@@ -72,7 +33,8 @@ def h5_get(h5_ptr,start,fin):
     castling = h5_ptr['castling'][start:fin] #4
     #castling_conv = h5_ptr['castling_conv'][start:fin]
     #castling_conv = castling_conv.reshape((-1,256))
-    #board_set = h5_ptr['board_set'][pos:pos+batch_size] #64
+    #board_set = h5_ptr['board_set'][start:fin] #64
+    #board_set = board_set/10
     piece_pos = h5_ptr['piece_pos'][start:fin] #768   (12,8,8)
     atk_map = h5_ptr['atk_map'][start:fin] #768
     flag = h5_ptr['flag'][start:fin] #3
@@ -106,7 +68,7 @@ def model_fn(features, labels, mode):
     #layer_1
     with tf.name_scope("layer_0"):
         with tf.name_scope("weights_0"):
-            W_0 = weight_variable(1541,1541,"W_0")
+            W_0 = weight_variable(1541,1024,"W_0")
             variable_summaries(W_0)
         with tf.name_scope("bias_0"):
             b_0 = tf.Variable(initial_value =0.0,name = "b_0")
@@ -114,13 +76,15 @@ def model_fn(features, labels, mode):
         with tf.name_scope("pre_activate_0"):
             a_0 = full_layer(input_layer, W_0, b_0)
             tf.summary.histogram("a_0",a_0)
+    bn0 = tf.layers.batch_normalization(
+            inputs = a_0, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN0')
     with tf.name_scope("relu_0"):
-        relu_0 = tf.nn.relu(a_0)
+        relu_0 = tf.nn.relu(bn0)
     tf.summary.histogram("relu_0s",relu_0)
     #layer_2
     with tf.name_scope("layer_1"):
         with tf.name_scope("weights_1"):
-            W_1 = weight_variable(1541,1541,"W_1")
+            W_1 = weight_variable(1024,512,"W_1")
             variable_summaries(W_1)
         with tf.name_scope("bias_1"):
             b_1 = tf.Variable(initial_value =0.0,name = "b_1")
@@ -128,49 +92,22 @@ def model_fn(features, labels, mode):
         with tf.name_scope("pre_activate_1"):
             a_1 = full_layer(relu_0, W_1, b_1)
             tf.summary.histogram("a_1",a_1)
+    bn1 = tf.layers.batch_normalization(
+            inputs = a_1, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN1')
     with tf.name_scope("relu_1"):
-        relu_1 = tf.nn.relu(a_1)
+        relu_1 = tf.nn.relu(bn1)
     tf.summary.histogram("relu_1s",relu_1)
-    #layer_3
-    with tf.name_scope("layer_2"):
+    dropout = tf.layers.dropout(inputs=relu_1, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN, name = 'Dropout')
+    ##logits
+    with tf.name_scope("logits"):
         with tf.name_scope("weights_2"):
-            W_2 = weight_variable(1541,1541,"W_2")
+            W_2 = weight_variable(512,3,"W_2")
             variable_summaries(W_2)
         with tf.name_scope("bias_2"):
             b_2 = tf.Variable(initial_value =0.0,name = "b_2")
             variable_summaries(b_2)
-        with tf.name_scope("pre_activate_2"):
-            a_2 = full_layer(relu_1, W_2, b_2)
-            tf.summary.histogram("a_2",a_2)
-    with tf.name_scope("relu_2"):
-        relu_2 = tf.nn.relu(a_2)
-    tf.summary.histogram("relu_2s",relu_2)
-    #layer_4
-    with tf.name_scope("layer_3"):
-        with tf.name_scope("weights_3"):
-            W_3 = weight_variable(1541,1541,"W_3")
-            variable_summaries(W_3)
-        with tf.name_scope("bias_3"):
-            b_3 = tf.Variable(initial_value =0.0,name = "b_3")
-            variable_summaries(b_3)
-        with tf.name_scope("pre_activate_3"):
-            a_3 = full_layer(relu_2, W_3, b_3)
-            tf.summary.histogram("a_3",a_3)
-    with tf.name_scope("relu_3"):
-        relu_3 = tf.nn.relu(a_3)
-    tf.summary.histogram("relu_3s",relu_3)
-    #droupout
-    dropout = tf.layers.dropout(inputs=relu_3, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN, name = 'Dropout')
-    ##logits
-    with tf.name_scope("logits"):
-        with tf.name_scope("weights_4"):
-            W_4 = weight_variable(1541,3,"W_4")
-            variable_summaries(W_4)
-        with tf.name_scope("bias_4"):
-            b_4 = tf.Variable(initial_value =0.0,name = "b_4")
-            variable_summaries(b_4)
         with tf.name_scope("logit"):
-            logit = full_layer(dropout, W_4, b_4)
+            logit = full_layer(dropout, W_2, b_2)
             tf.summary.histogram("logit",logit)
     predictions = {
         'classes': tf.argmax(input=logit, axis=1, name='classes'),
@@ -182,8 +119,7 @@ def model_fn(features, labels, mode):
     #loss_function
     with tf.name_scope("Loss"):
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits( labels = tf.argmax(labels,1) ,logits = logit)
-        l2_loss = 0.0001*(tf.nn.l2_loss(W_0)+tf.nn.l2_loss(W_1)+tf.nn.l2_loss(W_2)+
-                tf.nn.l2_loss(W_3)+tf.nn.l2_loss(W_4))
+        l2_loss = 0.001*(tf.nn.l2_loss(W_0)+tf.nn.l2_loss(W_1)+tf.nn.l2_loss(W_2))
         loss = tf.reduce_mean(cross_entropy, name = 'mean_loss') + l2_loss
     tf.summary.scalar('training_loss', loss)
     #Assess Accuracy
@@ -239,7 +175,7 @@ logging_hook = tf.train.LoggingTensorHook(
 #training on gpu
 with tf.device('/gpu:0'):
     evl_conv_temp = tf.estimator.Estimator(
-        model_fn = model_fn, model_dir = "./DNN/evl_dense_1/")
+        model_fn = model_fn, model_dir =FLAGS.model_dir)
 
 #evl_conv_temp.train(
 #    input_fn = train_input_fn,hooks = [logging_hook])

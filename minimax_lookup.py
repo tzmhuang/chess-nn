@@ -16,7 +16,7 @@ piece_val = {'P':1, 'R':5, 'N':3, 'B':4, 'Q':9, 'K':100,
 piece_val_2 = {'P':1, 'R':5, 'N':3, 'B':4, 'Q':9, 'K':100,
              'p':-1, 'r':-5, 'n':-3, 'b':-4, 'q':-9, 'k':-100}
 
-piece_val_2 = OrderedDict(piece_val_2s)
+piece_val_2 = OrderedDict(piece_val_2)
 
 board_val_mp = {0:56, 1:57, 2:58, 3:59, 4:60, 5:61, 6:62, 7:63,
              8:48, 9:49, 10:50, 11:51, 12:52, 13:53, 14:54, 15:55,
@@ -114,14 +114,16 @@ def game_phase(board):
 
 #done
 def extract(board):
-    g = game_phase(board)
+    #g = game_phase(board)
     t = turn(board)
+    t_conv = np.repeat(t,64).reshape(1,64)
     c = castling(board)
+    c_conv = np.repeat(c,64).reshape(1,256)
     b = board_cvrt(board)
     p = piece_pos(b)
     a = atk_map(b,board)
     #result = np.concatenate((t,c,b,p,a), axis = 1)
-    result = np.concatenate((g,t,c,p,a), axis = 1)
+    result = np.concatenate((b,p,a,t_conv,c_conv), axis = 1)
     return result
 
 #determine if the state is leaf
