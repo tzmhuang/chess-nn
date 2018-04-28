@@ -1,21 +1,20 @@
 from Desktop.chess-nn.minimax_lookup import *
-
-meta_dir = "./chess_nn_result/evl_NN_Adam/model/evl_NN_Adam-23129.meta"
-#meta_dir = "./DNN/evl_NN_Adam/model/evl_NN_Adam-23129.meta"
+from Desktop.chess-nn.evl_conv_3 import model_fn
 
 
-tf.reset_default_graph()
 
-imported_meta = tf.train.import_meta_graph(meta_dir)
 
-'''Initiating Variables...'''
-sess = tf.Session()
-imported_meta.restore(sess, tf.train.latest_checkpoint('./chess_nn_result/evl_NN_Adam/model/'))
-# imported_meta.restore(sess, tf.train.latest_checkpoint('./DNN/evl_NN_Adam/model/'))
-graph = tf.get_default_graph()
+def predict_input_fn(data):
+    data = data.astype('float32')
+    tmp = {'x':data}
+    return tf.estimator.inputs.numpy_input_fn(x = tmp,num_epochs = 1, shuffle = False )
 
-x = graph.get_tensor_by_name('input/input:0')
-'''Initiation Complete'''
+
+with tf.device('/gpu:0'):
+    evl_conv_temp = tf.estimator.Estimator(
+        model_fn = model_fn, model_dir = './DNN/evl_conv_5')
+
+
 
 player_side = input("Please choose your side(b/w): ")
 
@@ -59,11 +58,8 @@ def minimax_lookup(board, depth, alpha, beta, max_state):
 
 #need to consider lose or winning senarios
 def evaluate(in_data):
-    graph = tf.get_default_graph()
-    Y = graph.get_tensor_by_name("prob/Softmax:0")
-    epsilon = tf.constant(0.00000000001)
-    v = sess.run(Y, feed_dict={x:in_data})
-    return v[0,0]
+    Y = evl_conv_temp.predict(input_fn = predict_input_fn(in_data))
+    return Y
 
 def get_val(board):
     in_data = extract(board)

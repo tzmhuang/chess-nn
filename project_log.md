@@ -193,7 +193,7 @@
    - batch_size = 1024
    - accuracy = 0.47654992, global_step = 11644, loss = 1.0147022
 
-6. Trainnig `evl_conv_2`
+6. Trainnig `evl_conv_3`
    - using `AdamOptimizer` w 0.0001
    - training on
       - `NVIDIA K80` + 4 CPU
@@ -202,3 +202,53 @@
    - adding single filter conv layer before dense
    - batch size 1024
    - accuracy = 0.47183543, global_step = 11645, loss = 1.0219235
+
+7. Re-train `evl_conv_3` using atk_map data
+   - after 5 epoch:
+      - accuracy = 0.47618958, global_step = 11644, loss = 1.0354836
+   - after 10 epoch:
+      - accuracy = 0.46572226, global_step = 23288, loss = 1.105317
+   - after 6 epoch:
+      - accuracy = 0.45975262, global_step = 25617, loss = 1.0576634
+   - after 7 epoch:
+      - accuracy = 0.45898518, global_step = 27946, loss = 1.2002053
+
+8. Retraining `evl_conv_3`
+   - train total 15 Epoch
+   - reducing one conv layer but increase filter to 256
+
+9. 8. training `evl_dense_0`
+   - train total 15 Epoch
+   - 4 hidden-layer fully connected
+   - l2 regularization with c=0.0001
+   - AdamOptimizer step_size = 0.0001
+   - Batch_size = 1024
+
+10. testing `evl_conv_3` evaluation result on different stages:
+   - eval_results_early:
+      - {'accuracy': 0.4453629, 'global_step': 34935, 'loss': 1.0654339}
+   - eval_results_30
+      - {'accuracy': 0.4770964, 'global_step': 34935, 'loss': 1.1330465}
+   - eval_results_40
+      - {'accuracy': 0.48515147, 'global_step': 34935, 'loss': 1.1358092}
+   - eval_results_late
+      - {'accuracy': 0.4986382, 'global_step': 34935, 'loss': 1.1345435}
+
+ 11. training `evl_conv_4`
+    - based on `evl_conv_3`
+    - bring back piece_pos, no scaling
+
+12. `evl_conv_5`  shows promising results
+    - kernel shape = [1,1]
+    - testing accuracy increases even in epoch 15
+    -  shows Potential
+    - Double down by training `evl_conv_5_1`,
+       - 1 more conv_layer
+       - BN after input layer
+       - increasing initial ADAM step size by x100
+          - too large, change to x10
+
+11. training `evl_conv_4_1`
+    - based on `evl_conv_3`
+    - bring back piece_pos, no scaling
+    - adding dropout layer

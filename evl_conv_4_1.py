@@ -1,42 +1,3 @@
-'''
-Name: evl_conv_5
-Date: 23,Apr,2018
-Train on: Google VM, 4 CPU + NVIDIA K80 GPU
-Purpose:
-        - Adamoptimizer
-        - add batch normalization
-        - using batch size: 1024
-        - added filter = 256
-        - using more random sample, shuffle -> iter from start
-            - failed due to memory error
-            - retry with another implementation
-        - Using one_hot representation
-        - Adding move_num as training input, hopefully help machine distinguish stages of game
-        - using uniform Xaviar initizlization
-Config:
-        - Epoch: 15
-        - batch_size: 1024
-        - Training: Adamoptimizer
-        - learning rate: 0.001
-        - beta 0.01
-        - beta1 = 0.9
-        - beta2 = 0.999
-'''
-
-'''
-From bucket to terminal:
-    gsutil cp gs://chess-nn/test_data.h5 ~/DNN
-    gsutil cp gs://chess-nn/train_data.h5 ~/DNN
-
-Get graph/model:
-    gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/evl_conv_temp/ ./
-Get model:
-    gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/model/... ./
-Reset:
-    rm -r ./DNN/evl_conv_temp
-'''
-
-
 import tensorflow as tf
 import numpy as np
 import random
@@ -53,10 +14,10 @@ partition_train = int(0.7*data_size)
 partition_test = data_size - partition_train
 
 batch_size = 1024
-training_epochs = 30
+training_epochs = 20
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('model_dir',"./DNN/evl_conv_5/",'dir of model stored' )
+tf.app.flags.DEFINE_string('model_dir',"./DNN/evl_conv_4_1/",'dir of model stored' )
 tf.app.flags.DEFINE_integer('train_data_size',partition_train, 'size of training data')
 tf.app.flags.DEFINE_integer('test_data_size',partition_test, 'size of testing data')
 tf.app.flags.DEFINE_integer('batch_size',batch_size, 'mini batch size' )
@@ -111,9 +72,11 @@ def variable_summaries(var):
 
 def model_fn(features, labels, mode):
     #input and reshape
-    input_layer = tf.reshape(features['x'],[-1,30,8,8])
+    input_layer = tf.reshape(features['x'],[-1,8,8,30])
+    bn0 = tf.layers.batch_normalization(
+            inputs = input_layer, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN0')
     #conv1
-    conv1 = tf.layers.conv2d(inputs=input_layer,filters=64,kernel_size=[1, 1],
+    conv1 = tf.layers.conv2d(inputs=input_layer,filters=256,kernel_size=[3, 3],
             padding="same",activation=None,kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),name='CONV1')
     bn1 = tf.layers.batch_normalization(
             inputs = conv1, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN1')
@@ -123,7 +86,7 @@ def model_fn(features, labels, mode):
     #tf.summary.histogram('BN1', bn1)
     #bn1 = tf.layers.batch_normalization(input = conv1,training=mode == tf.estimator.ModeKeys.TRAIN,name='BN1')
     #conv2
-    conv2 = tf.layers.conv2d(inputs=relu1, filters=64, kernel_size=[1, 1],
+    conv2 = tf.layers.conv2d(inputs=relu1, filters=256, kernel_size=[3, 3],
             padding="same", activation=None,kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),name='CONV2')
     bn2 = tf.layers.batch_normalization(
             inputs = conv2, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN2')
@@ -131,31 +94,23 @@ def model_fn(features, labels, mode):
     tf.summary.histogram('conv2', conv2)
     tf.summary.histogram('relu2', relu2)
     #tf.summary.histogram('BN2', bn2)
-    #conv3
-    conv3 = tf.layers.conv2d(inputs=relu2, filters=64, kernel_size=[1, 1],
-            padding="same", activation=None,kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),name='CONV3')
+    #conv4
+    conv3 = tf.layers.conv2d(inputs=relu2, filters=128, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),kernel_size=[1, 1],
+            padding="same", activation=None,name='CONV3')
     bn3 = tf.layers.batch_normalization(
             inputs = conv3, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN3')
     relu3 = tf.nn.relu(bn3, name = 'relu3')
-    tf.summary.histogram('conv2', conv2)
-    tf.summary.histogram('relu2', relu2)
-    #conv4
-    conv4 = tf.layers.conv2d(inputs=relu3, filters=1, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),kernel_size=[1, 1],
-            padding="same", activation=None,name='CONV4')
-    bn4 = tf.layers.batch_normalization(
-            inputs = conv4, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN4')
-    dropout = tf.layers.dropout(inputs=bn4, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN, name = 'Dropout')
-    relu4 = tf.nn.relu(dropout, name = 'relu4')
-    tf.summary.histogram('conv4', conv3)
-    tf.summary.histogram('relu4', relu3)
+    tf.summary.histogram('conv3', conv3)
+    tf.summary.histogram('relu3', relu3)
     #tf.summary.histogram('BN4', bn4)
     #dense_layer
-    flattern = tf.reshape(relu4, [-1,8*8])
+    flattern = tf.reshape(relu3, [-1,8*8*128])
     dense_1 = tf.layers.dense(inputs=flattern, units=64,kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001), name='DENSE_1')
     relu_final = tf.nn.relu(dense_1,name = 'relu_final')
     tf.summary.histogram('relu_final', relu_final)
     #tf.summary.histogram('flat', flattern)
-    logit = tf.layers.dense(inputs=relu_final, units=3, name='FINAL')
+    dropout = tf.layers.dropout(inputs=relu_final, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN, name = 'Dropout')
+    logit = tf.layers.dense(inputs=dropout, units=3, name='FINAL')
     # dropout = tf.layers.dropout(
     #   inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
     predictions = {
@@ -179,8 +134,6 @@ def model_fn(features, labels, mode):
     tf.summary.scalar('batch_acc', batch_acc)
     tf.summary.scalar('streaming_acc', update_op)
     #training_operation
-    if mode == tf.estimator.ModeKeys.PREDICT:
-        return tf.estimator.EstimatorSpec(mode = mode, predictions = predictions)
     if mode == tf.estimator.ModeKeys.TRAIN:
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         optimizer = tf.train.AdamOptimizer(learning_rate = 0.0001)
@@ -226,7 +179,7 @@ logging_hook = tf.train.LoggingTensorHook(
 #training on gpu
 with tf.device('/gpu:0'):
     evl_conv_temp = tf.estimator.Estimator(
-        model_fn = model_fn, model_dir = FLAGS.model_dir)
+        model_fn = model_fn, model_dir = "./DNN/evl_conv_4_1/")
 
 #evl_conv_temp.train(
 #    input_fn = train_input_fn,hooks = [logging_hook])
