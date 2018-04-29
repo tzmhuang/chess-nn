@@ -837,3 +837,88 @@ for i in range(0,tmp.shape[0]):
     temp = temp.reshape(30,8,8).transpose().reshape(1,8,8,30)
     result = np.concatenate((result,temp), axis = 0)
     if i%1000 == 0: print (i)
+
+
+'''
+Number of each type of piece
+'''
+
+train_piece_pos = train_h['piece_pos'][:]
+test_piece_pos = test_h['piece_pos'][:]
+
+train_h = h5py.File('./DNN/train_data.h5')
+test_h = h5py.File('./DNN/test_data.h5')
+
+def piece_num(h5_ptr, start,finish):
+    data = h5_ptr['piece_pos'][start:finish]
+    result = np.empty((0,12),dtype = 'int8')
+    for i in range(data.shape[0]):
+        w_p = data[i][0:64].sum()
+        w_r = data[i][64:128].sum()
+        w_n = data[i][128:192].sum()
+        w_b = data[i][192:256].sum()
+        w_q = data[i][256:320].sum()
+        w_k = data[i][320:384].sum()
+        b_p = data[i][384:448].sum()
+        b_r = data[i][448:512].sum()
+        b_n = data[i][512:576].sum()
+        b_b = data[i][576:640].sum()
+        b_q = data[i][640:704].sum()
+        b_k = data[i][704:768].sum()
+        tmp = np.array([[w_p,w_r,w_n,w_b,w_q,w_k,b_p,b_r,b_n,b_b,b_q,b_k]])
+        result = np.concatenate((result,tmp), axis = 0)
+        if i%10000 == 0:
+            # np.save('./Chess/piece_num',result)
+            np.save('./Chess/test_piece_num_{}'.format(i), result)
+            result = np.empty((0,12),dtype = 'int8')
+            print(i)
+    np.save('./Chess/test_piece_num_{}'.format(i), result)
+    return result
+
+
+result = np.empty((0,12))
+for i in range(0,239):
+    temp = np.load('./Chess/train_piece_num_{}.npy'.format(i*10000))
+    result = np.concatenate((result,temp), axis = 0)
+    print(i)
+temp = np.load('./Chess/train_piece_num_2384567.npy')
+result = np.concatenate((result,temp), axis = 0)
+
+
+result = np.empty((0,12))
+for i in range(0,103):
+    temp = np.load('./Chess/test_piece_num_{}.npy'.format(i*10000))
+    result = np.concatenate((result,temp), axis = 0)
+    print(i)
+temp = np.load('./Chess/test_piece_num_1021957.npy')
+result = np.concatenate((result,temp), axis = 0)
+
+
+data = pd.read_csv('./Chess/pgn_data_titled_2013', index_col = 0)
+
+data_1 = data.iloc[0:25000]
+data_2 = data.iloc[25000:41738]
+
+#function equivilant to game_cvrt() but using board_cvrt_sqr() instead
+def game_is_check(game):
+    board = chess.Board()
+    Data_game = pd.DataFrame()
+    for moves in game.main_line():
+        board.push(moves)
+        ck = int(board.is_check())
+        ckm = int(board.is_checkmate())
+        temp = pd.Series([ck,ckm])
+        Data_game = Data_game.append(temp, ignore_index=True)
+    return Data_game.astype('int8')
+
+
+
+def piece_pos_df(pgn_df):
+    temp = pd.DataFrame()
+    for i in range(0,pgn_df.size):
+        game = chess.pgn.read_game(StringIO(pgn_df.iloc[i,0]))
+        temp = temp.append(game_is_check(game), ignore_index=True)
+        if i%1000 == 0:
+            print(i)
+    temp.to_csv('./Chess/board_check_2')
+    return temp

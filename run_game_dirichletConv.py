@@ -1,7 +1,7 @@
 from Desktop.chess-nn.minimax_lookup import *
 from Desktop.chess-nn.evl_conv_3 import model_fn
 import time
-meta_dir = "./chess_nn_result/evl_dense_2/model.ckpt-18633.meta"
+meta_dir = "./chess_nn_result/evl_conv_8/model.ckpt-44252.meta"
 #meta_dir = "./DNN/evl_NN_Adam/model/evl_NN_Adam-23129.meta"
 
 
@@ -12,25 +12,27 @@ imported_meta = tf.train.import_meta_graph(meta_dir)
 
 '''Initiating Variables...'''
 sess = tf.Session()
-imported_meta.restore(sess, tf.train.latest_checkpoint('./chess_nn_result/evl_dense_2/'))
+imported_meta.restore(sess, tf.train.latest_checkpoint('./chess_nn_result/evl_conv_8/'))
 # imported_meta.restore(sess, tf.train.latest_checkpoint('./DNN/evl_NN_Adam/model/'))
 graph = tf.get_default_graph()
-W_0 = graph.get_tensor_by_name("layer_0/weights_0/W_0:0")
-W_1 = graph.get_tensor_by_name("layer_1/weights_1/W_1:0")
-W_2 = graph.get_tensor_by_name("logits/weights_2/W_2:0")
-#W_3 = tf.get_tensor_by_name("layer_3/weights_3:0")
-b_0 = graph.get_tensor_by_name("layer_0/bias_0/b_0:0")
-b_1 = graph.get_tensor_by_name("layer_1/bias_1/b_1:0")
-b_2 = graph.get_tensor_by_name("logits/bias_2/b_2:0")
-# b_3 = tf.get_tensor_by_name("layer_3/bias_3:0")
-bn0_mean = graph.get_tensor_by_name('BN0/moving_mean:0')
-bn1_mean = graph.get_tensor_by_name('BN1/moving_mean:0')
-bn0_var = graph.get_tensor_by_name('BN0/moving_variance:0')
-bn1_var = graph.get_tensor_by_name('BN1/moving_variance:0')
-bn0_gamma = graph.get_tensor_by_name('BN0/gamma:0')
-bn1_gamma = graph.get_tensor_by_name('BN1/gamma:0')
-bn0_beta = graph.get_tensor_by_name('BN0/beta:0')
-bn1_beta = graph.get_tensor_by_name('BN1/beta:0')
+kernel_1 = graph.get_tensor_by_name("CONV1/kernel:0")
+bias_1 = graph.get_tensor_by_name("CONV1/bias:0")
+
+kernel_2 = graph.get_tensor_by_name("CONV1/kernel:0")
+bias_2 = graph.get_tensor_by_name("CONV1/bias:0")
+
+kernel_3 = graph.get_tensor_by_name("CONV1/kernel:0")
+bias_3 = graph.get_tensor_by_name("CONV1/bias:0")
+
+kernel_4 = graph.get_tensor_by_name("CONV1/kernel:0")
+bias_4 = graph.get_tensor_by_name("CONV1/bias:0")
+
+kernel_5 = graph.get_tensor_by_name("CONV1/kernel:0")
+bias_4 = graph.get_tensor_by_name("CONV1/bias:0")
+
+
+
+
 
 x = tf.placeholder(tf.float32,name = 'input', shape = [None,1541] )
 layer_0 = tf.matmul(x,W_0)+b_0

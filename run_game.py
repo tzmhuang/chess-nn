@@ -7,7 +7,6 @@ meta_dir = "./chess_nn_result/evl_NN_Adam/model/evl_NN_Adam-23129.meta"
 tf.reset_default_graph()
 
 imported_meta = tf.train.import_meta_graph(meta_dir)
-
 '''Initiating Variables...'''
 sess = tf.Session()
 imported_meta.restore(sess, tf.train.latest_checkpoint('./chess_nn_result/evl_NN_Adam/model/'))
@@ -24,7 +23,7 @@ graph = tf.get_default_graph()
 
 
 # graph = tf.get_default_graph()
-x = graph.get_tensor_by_name('input/input:0')
+
 '''Initiation Complete'''
 
 player_side = input("Please choose your side(b/w): ")

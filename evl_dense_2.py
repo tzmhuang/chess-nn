@@ -116,6 +116,8 @@ def model_fn(features, labels, mode):
     tf.summary.histogram('logit',logit)
     tf.summary.histogram('prediction_classes',predictions['classes'])
     tf.summary.histogram('prediction_probabilities',predictions['probabilities'])
+    if mode == tf.estimator.ModeKeys.PREDICT:
+        return tf.estimator.EstimatorSpec(mode = mode, predictions = predictions)
     #loss_function
     with tf.name_scope("Loss"):
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits( labels = tf.argmax(labels,1) ,logits = logit)

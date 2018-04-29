@@ -1,42 +1,3 @@
-'''
-Name: evl_conv_5
-Date: 23,Apr,2018
-Train on: Google VM, 4 CPU + NVIDIA K80 GPU
-Purpose:
-        - Adamoptimizer
-        - add batch normalization
-        - using batch size: 1024
-        - added filter = 256
-        - using more random sample, shuffle -> iter from start
-            - failed due to memory error
-            - retry with another implementation
-        - Using one_hot representation
-        - Adding move_num as training input, hopefully help machine distinguish stages of game
-        - using uniform Xaviar initizlization
-Config:
-        - Epoch: 15
-        - batch_size: 1024
-        - Training: Adamoptimizer
-        - learning rate: 0.001
-        - beta 0.01
-        - beta1 = 0.9
-        - beta2 = 0.999
-'''
-
-'''
-From bucket to terminal:
-    gsutil cp gs://chess-nn/test_data.h5 ~/DNN
-    gsutil cp gs://chess-nn/train_data.h5 ~/DNN
-
-Get graph/model:
-    gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/evl_conv_temp/ ./
-Get model:
-    gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/model/... ./
-Reset:
-    rm -r ./DNN/evl_conv_temp
-'''
-
-
 import tensorflow as tf
 import numpy as np
 import random
@@ -45,8 +6,8 @@ import h5py
 
 tf.reset_default_graph()
 
-train_h = h5py.File("./DNN/train_data.h5")
-test_h = h5py.File("./DNN/test_data.h5")
+train_h = h5py.File("./DNN/train_conv.h5")
+test_h = h5py.File("./DNN/test_conv.h5")
 
 data_size = train_h['flag'].shape[0] + test_h['flag'].shape[0]
 partition_train = int(0.7*data_size)
@@ -56,7 +17,7 @@ batch_size = 1024
 training_epochs = 30
 
 FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('model_dir',"./DNN/evl_conv_5/",'dir of model stored' )
+tf.app.flags.DEFINE_string('model_dir',"./DNN/evl_conv_9/",'dir of model stored' )
 tf.app.flags.DEFINE_integer('train_data_size',partition_train, 'size of training data')
 tf.app.flags.DEFINE_integer('test_data_size',partition_test, 'size of testing data')
 tf.app.flags.DEFINE_integer('batch_size',batch_size, 'mini batch size' )
@@ -64,37 +25,23 @@ tf.app.flags.DEFINE_integer('epoch',training_epochs, 'total epoch trained')
 
 
 
-def h5_get(h5_ptr,start,fin):
+def h5_get_conv(test,h5_ptr,start,fin):
     #move_num = h5_ptr['move_num'][pos:pos+batch_size] #1
     #game_phase = h5_ptr['game_phase'][ind] #3
     #turn_move = h5_ptr['turn_move'][ind] #1
-    turn_move_conv = h5_ptr['turn_move_conv'][start:fin]
+    if test:
+        turn_move = h5_ptr['turn_move_new'][start:fin*64].astype('float32')
+    else:
+        turn_move = h5_ptr['turn_move'][start:fin*64].astype('float32')
     #castling = h5_ptr['castling'][ind] #4
-    castling_conv = h5_ptr['castling_conv'][start:fin]
-    castling_conv = castling_conv.reshape((-1,256))
-    board_set = h5_ptr['board_set'][start:fin] #64
-    piece_pos = h5_ptr['piece_pos'][start:fin] #768   (12,8,8)
-    atk_map = h5_ptr['atk_map'][start:fin] #768
-    flag = h5_ptr['flag'][start:fin] #3
-    current_data = np.concatenate((board_set,piece_pos,atk_map,turn_move_conv,castling_conv,flag), axis = 1)
-    del(turn_move_conv,castling_conv,piece_pos)
-    return current_data
-
-def h5_get_conv(h5_ptr,start,fin):
-    #move_num = h5_ptr['move_num'][pos:pos+batch_size] #1
-    #game_phase = h5_ptr['game_phase'][ind] #3
-    #turn_move = h5_ptr['turn_move'][ind] #1
-    turn_move_conv = h5_ptr['turn_move_conv'][start:fin]
-    turn_move = turn_move.reshape(-1,1)
-    #castling = h5_ptr['castling'][ind] #4
-    castling = h5_ptr['castling_conv_2'][start:fin*64]
-    board_set = h5_ptr['board_set'][start:fin] #64
-    piece_pos = h5_ptr['piece_pos'][start:fin] #768   (12,8,8)
-    atk_map = h5_ptr['atk_map'][start:fin] #768
-    flag = h5_ptr['flag'][start:fin] #3
-    current_data = np.concatenate((board_set,piece_pos,atk_map,turn_move_conv,castling_conv), axis = 1)
-    del(turn_move_conv,castling_conv,piece_pos)
-    return data = {'x':current_data, 'y' = flag}
+    castling = h5_ptr['castling'][start:fin*64].astype('float32') #(-1,4)
+    board_set = h5_ptr['board_set'][start:fin*64].astype('float32') #64 (-1,1)
+    piece_pos = h5_ptr['piece_pos'][start:fin*64].astype('float32') #768   (-1,12)
+    atk_map = h5_ptr['atk_map'][start:fin*64].astype('float32') #768 (-1,12)
+    flag = h5_ptr['flag'][start:fin].astype('float32') #3 (-1,3)
+    current_data = np.concatenate((board_set,piece_pos,atk_map,turn_move,castling), axis = 1)
+    del(turn_move,castling,piece_pos)
+    return {'x':current_data, 'y' : flag}
 
 def variable_summaries(var):
     with tf.name_scope('summaries'):
@@ -111,9 +58,10 @@ def variable_summaries(var):
 
 def model_fn(features, labels, mode):
     #input and reshape
-    input_layer = tf.reshape(features['x'],[-1,30,8,8])
+    #input_layer = tf.reshape(features['x'],[-1,8,8,30])
+    input_layer = features['x']
     #conv1
-    conv1 = tf.layers.conv2d(inputs=input_layer,filters=64,kernel_size=[1, 1],
+    conv1 = tf.layers.conv2d(inputs=input_layer,filters=256,kernel_size=[5, 5],
             padding="same",activation=None,kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),name='CONV1')
     bn1 = tf.layers.batch_normalization(
             inputs = conv1, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN1')
@@ -123,7 +71,7 @@ def model_fn(features, labels, mode):
     #tf.summary.histogram('BN1', bn1)
     #bn1 = tf.layers.batch_normalization(input = conv1,training=mode == tf.estimator.ModeKeys.TRAIN,name='BN1')
     #conv2
-    conv2 = tf.layers.conv2d(inputs=relu1, filters=64, kernel_size=[1, 1],
+    conv2 = tf.layers.conv2d(inputs=relu1, filters=256, kernel_size=[3, 3],
             padding="same", activation=None,kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),name='CONV2')
     bn2 = tf.layers.batch_normalization(
             inputs = conv2, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN2')
@@ -132,25 +80,33 @@ def model_fn(features, labels, mode):
     tf.summary.histogram('relu2', relu2)
     #tf.summary.histogram('BN2', bn2)
     #conv3
-    conv3 = tf.layers.conv2d(inputs=relu2, filters=64, kernel_size=[1, 1],
+    conv3 = tf.layers.conv2d(inputs=relu2, filters=256, kernel_size=[3, 3],
             padding="same", activation=None,kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),name='CONV3')
     bn3 = tf.layers.batch_normalization(
             inputs = conv3, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN3')
     relu3 = tf.nn.relu(bn3, name = 'relu3')
-    tf.summary.histogram('conv2', conv2)
-    tf.summary.histogram('relu2', relu2)
+    tf.summary.histogram('conv3', conv3)
+    tf.summary.histogram('relu3', relu3)
     #conv4
-    conv4 = tf.layers.conv2d(inputs=relu3, filters=1, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),kernel_size=[1, 1],
+    conv4 = tf.layers.conv2d(inputs=relu3, filters=256, kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),kernel_size=[3,3 ],
             padding="same", activation=None,name='CONV4')
     bn4 = tf.layers.batch_normalization(
             inputs = conv4, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN4')
-    dropout = tf.layers.dropout(inputs=bn4, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN, name = 'Dropout')
-    relu4 = tf.nn.relu(dropout, name = 'relu4')
-    tf.summary.histogram('conv4', conv3)
-    tf.summary.histogram('relu4', relu3)
+    relu4 = tf.nn.relu(bn4, name = 'relu4')
+    tf.summary.histogram('conv4', conv4)
+    tf.summary.histogram('relu4', relu4)
+    #conv_5
+    conv5 = tf.layers.conv2d(inputs=relu4, filters=1, kernel_size=[1, 1],
+            padding="same", activation=None,kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001),name='CONV5')
+    bn5 = tf.layers.batch_normalization(
+            inputs = conv5, training= mode==tf.estimator.ModeKeys.TRAIN, name = 'BN5')
+    relu5 = tf.nn.relu(bn5, name = 'relu5')
+    dropout = tf.layers.dropout(inputs=bn5, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN, name = 'Dropout')
+    tf.summary.histogram('conv5', conv5)
+    tf.summary.histogram('relu5', relu5)
     #tf.summary.histogram('BN4', bn4)
     #dense_layer
-    flattern = tf.reshape(relu4, [-1,8*8])
+    flattern = tf.reshape(relu5, [-1,8*8])
     dense_1 = tf.layers.dense(inputs=flattern, units=64,kernel_regularizer=tf.contrib.layers.l2_regularizer(0.0001), name='DENSE_1')
     relu_final = tf.nn.relu(dense_1,name = 'relu_final')
     tf.summary.histogram('relu_final', relu_final)
@@ -167,9 +123,10 @@ def model_fn(features, labels, mode):
     tf.summary.histogram('prediction_probabilities',predictions['probabilities'])
     #loss_function
     with tf.name_scope("Loss"):
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits( labels = tf.argmax(labels,1) ,logits = logit)
+        #cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits( labels = tf.argmax(labels,1) ,logits = logit)
+        rmse = (tf.reduce_mean(tf.square((predictions['probabilities'] - labels))))
         l2_loss = tf.losses.get_regularization_loss(name='total_regularization_loss')
-        loss = tf.reduce_mean(cross_entropy, name = 'mean_loss') + l2_loss
+        loss = -tf.log(rmse+0.000001) + l2_loss
     tf.summary.scalar('training_loss', loss)
     #Assess Accuracy
     accuracy, update_op = tf.metrics.accuracy(
@@ -201,17 +158,12 @@ def model_fn(features, labels, mode):
 #     dataset = dataset.shuffle(256).repeat(FLAG.epoch).batch(FLAG.batch_size)
 #     return dataset.make_one_shot_iterator().get_next()
 
-data_1 = h5_get(train_h,0,int(FLAGS.train_data_size/2)).astype('float32')
-data_2 = h5_get(train_h,int(FLAGS.train_data_size/2),FLAGS.train_data_size).astype('float32')
-data_1 = np.concatenate((data_1,data_2),axis = 0)
-del(data_2)
+data = h5_get_conv(False,train_h,0,int(FLAGS.train_data_size))
 
-data_x = data_1[:,0:1920]
-data_y = data_1[:,1920:1923]
 
 train_input_fn = tf.estimator.inputs.numpy_input_fn(
-    x = {'x':data_x},
-    y = data_y,
+    x = {'x':data['x'].reshape(-1,8,8,30)},
+    y = data['y'],
     batch_size = FLAGS.batch_size,
     num_epochs = 1,
     shuffle = True,
@@ -226,19 +178,18 @@ logging_hook = tf.train.LoggingTensorHook(
 #training on gpu
 with tf.device('/gpu:0'):
     evl_conv_temp = tf.estimator.Estimator(
-        model_fn = model_fn, model_dir = FLAGS.model_dir)
+        model_fn = model_fn, model_dir = "./DNN/evl_conv_9/")
 
 #evl_conv_temp.train(
 #    input_fn = train_input_fn,hooks = [logging_hook])
 
 #test_data = h5_by_ind(test_h,ind)
-test_data = h5_get(test_h,0,int(FLAGS.train_data_size/5)).astype('float32')
-test_x = test_data[:,0:1920]
-test_y = test_data[:,1920:1923]
+test_data = h5_get_conv(True,test_h,0,int(FLAGS.test_data_size/5))
+
 
 eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-    x = {'x':test_x},
-    y = test_y,
+    x = {'x':test_data['x'].reshape(-1,8,8,30)},
+    y = test_data['y'],
     num_epochs = 1,
     shuffle = False
     )

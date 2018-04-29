@@ -116,14 +116,14 @@ def game_phase(board):
 def extract(board):
     #g = game_phase(board)
     t = turn(board)
-    t_conv = np.repeat(t,64).reshape(1,64)
+    #t_conv = np.repeat(t,64).reshape(1,64)
     c = castling(board)
-    c_conv = np.repeat(c,64).reshape(1,256)
+    #c_conv = np.repeat(c,64).reshape(1,256)
     b = board_cvrt(board)
     p = piece_pos(b)
     a = atk_map(b,board)
     #result = np.concatenate((t,c,b,p,a), axis = 1)
-    result = np.concatenate((b,p,a,t_conv,c_conv), axis = 1)
+    result = np.concatenate((t,c,p,a), axis = 1)
     return result
 
 #determine if the state is leaf
