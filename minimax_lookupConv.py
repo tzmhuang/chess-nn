@@ -1,3 +1,4 @@
+
 import chess
 import tensorflow as tf
 import numpy as np
@@ -111,43 +112,37 @@ def game_phase(board):
         result = np.array([[0,1,0]])
     return result
 
-def piece_num (data): #piece_pos
-    i = 0
-    w_p = data[i][0:64].sum()
-    w_r = data[i][64:128].sum()
-    w_n = data[i][128:192].sum()
-    w_b = data[i][192:256].sum()
-    w_q = data[i][256:320].sum()
-    w_k = data[i][320:384].sum()
-    b_p = data[i][384:448].sum()
-    b_r = data[i][448:512].sum()
-    b_n = data[i][512:576].sum()
-    b_b = data[i][576:640].sum()
-    b_q = data[i][640:704].sum()
-    b_k = data[i][704:768].sum()
-    tmp = np.array([[w_p,w_r,w_n,w_b,w_q,w_k,b_p,b_r,b_n,b_b,b_q,b_k]])
-    return tmp
+def conv_shape(data):
+    tmp1 = data[:,0:64].transpose()
+    tmp2 = data[:,64:128].transpose()
+    tmp3 = data[:,128:192].transpose()
+    tmp4 = data[:,192:256].transpose()
+    tmp5 = data[:,256:320].transpose()
+    tmp6 = data[:,320:384].transpose()
+    tmp7 = data[:,384:448].transpose()
+    tmp8 = data[:,448:512].transpose()
+    tmp9 = data[:,512:576].transpose()
+    tmp10 = data[:,576:640].transpose()
+    tmp11 = data[:,640:704].transpose()
+    tmp12 = data[:,704:768].transpose()
+    return np.concatenate((tmp1,tmp2,tmp3,tmp4,tmp5,tmp6,tmp7,tmp8,tmp9,tmp10,tmp11,tmp12), axis = 1)
 
 #done
-def board_check(board):
-    ck = int(board.is_check())
-    ckm = int(board.is_checkmate())
-    return np.array([[ck,ckm]])
-
-
 def extract(board):
     #g = game_phase(board)
     t = turn(board)
-    bc = board_check(board)
-    #t_conv = np.repeat(t,64).reshape(1,64)
+    t_conv = np.repeat(t,64).reshape(-1,1)
     c = castling(board)
-    #c_conv = np.repeat(c,64).reshape(1,256)
+    c_conv = np.repeat(c,64).reshape(4,-1).transpose()
     b = board_cvrt(board)
+    b_conv = b.reshape(-1,1)
     p = piece_pos(b)
-    pn = piece_num(p)
+    p_conv = conv_shape(p)
     a = atk_map(b,board)
+    a_conv = conv_shape(a)
     #result = np.concatenate((t,c,b,p,a), axis = 1)
-    result = np.concatenate((t,c,bc,pn,p,a), axis = 1)
+    result = np.concatenate((b_conv,p_conv,a_conv,t_conv,c_conv), axis = 1)
+    result = result.reshape(1,8,8,30)
     return result
 
 #determine if the state is leaf

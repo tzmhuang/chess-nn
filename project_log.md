@@ -252,3 +252,21 @@
     - based on `evl_conv_3`
     - bring back piece_pos, no scaling
     - adding dropout layer
+
+
+
+###FINAL
+1. Training evl_final_1 for 40 epoch
+    - regularisation too powerful, try again using evl_final_2
+    - graoh wont save , try again using evl_final_3
+        - over fitting with large training losses
+    - train evl_conv_final4
+
+
+
+
+## STS testing
+#standards: depth = 4?
+#Only first 10 from each sts file
+# best move ranking
+1. Testing on evl_dense_final0

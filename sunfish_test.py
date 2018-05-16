@@ -399,6 +399,7 @@ def main():
             print("Computer's Turn")
             print('Thinking...')
             start_time = time.time()
+            #d = drichlet_count(data_np,board).reshape((1,list(board.legal_moves).__len__()))
             v = ai_move(board,3,True)
             my_move = list(board.legal_moves)[np.argmax(v)]
             board.push(my_move)
@@ -433,7 +434,8 @@ def main():
                 print("Checkmate!")
                 print (board.result())
             print (moves_list)
-            with open("./Desktop/Chess/sunfish_test/game_2.txt", "w") as f:
+            # with open("./Desktop/Chess/sunfish_test/game_dense_final.txt", "w") as f:
+            with open("./DNN/game_dense_final.txt", "w") as f:
                 for s in moves_list:
                     f.write(str(s) +"\n")
                 f.write(board.result())
