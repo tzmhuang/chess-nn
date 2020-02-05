@@ -4,61 +4,62 @@ import chess.pgn
 import pandas as pd
 from io import StringIO                                                         #for PGN string parsing
 
-#pgn = open("Desktop/Chess/ficsgamesdb_201701_standard_nomovetimes_1511264.pgn") #Total number of games: 104035
-./google-cloud-sdk/bin/gcloud compute ssh --zone=asia-east1-a nn-instance1
+# pgn = open("Desktop/Chess/ficsgamesdb_201701_standard_nomovetimes_1511264.pgn") #Total number of games: 104035
+# ./google-cloud-sdk/bin/gcloud compute ssh --zone=asia-east1-a nn-instance1
 
-# from bucket to VM
-gsutil cp gs://[BUCKET_NAME]/[OBJECT_NAME] [OBJECT_DESTINATION]
-gsutil cp gs://chess-nn/pgn_data_titled_2013 ~/Chess
-gsutil cp gs://chess-nn/data ~/Chess
-gsutil cp gs://chess-nn/data/train_data_2013 ~/Chess
-gsutil cp gs://chess-nn/data/atk_map_* /home/huangtom2/Chess
-
-gsutil cp gs://chess-nn/libcudnn7-dev_7.1.3.16-1+cuda8.0_amd64.deb	 ~/
-gsutil cp gs://chess-nn/libcudnn7_7.1.3.16-1+cuda8.0_amd64.deb	 ~/
-
-gsutil cp gs://chess-nn/cuDNN/libcudnn7_7.1.3.16-1+cuda9.1_amd64.deb	 ~/
-gsutil cp gs://chess-nn/cuDNN/libcudnn7-dev_7.1.3.16-1+cuda9.1_amd64.deb	 ~/
-gsutil cp gs://chess-nn/cuDNN/libcudnn7-doc_7.1.3.16-1+cuda9.1_amd64.deb ~/
-
-
-
-
-##set up CUDA-nn
-sudo dpkg -i libcudnn7-dev_7.1.3.16-1+cuda8.0_amd64.deb
-sudo dpkg -i libcudnn7_7.1.3.16-1+cuda8.0_amd64.deb
-sudo apt-get install cuda-command-line-tools
-
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/extras/CUPTI/lib64
-
-#from VM to bucket?
-gsutil cp [LOCAL_OBJECT_LOCATION] gs://[DESTINATION_BUCKET_NAME]/
-gsutil cp  ~/Chess/499 gs://chess-nn/
-gsutil cp  ~/DNN gs://chess-nn/
-
-
-# from VM to local
-gcloud compute copy-files [INSTANCE_NAME]:[REMOTE_FILE_PATH] [LOCAL_FILE_PATH]
-gcloud compute copy-files nn-instance1:~/Chess/train_data_2013 ~/Desktop
-
-gcloud compute copy-files nn-instance1:~/Chess/castling_* ~/Desktop/Chess/data
-gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/train_data{32499..41499..500} ~/Desktop/Chess/data
-gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/game_move_num_* ~/Desktop/Chess/data
-gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/at* ~/Desktop/Chess/data
-gcloud compute copy-files nn-instance1:/home/huangtom2/chess_data.gz ~/Desktop/Chess/data
-gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/flag.npy ~/Desktop
-gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/evl_conv_1 ./
+### from bucket to VM
+# gsutil cp gs://[BUCKET_NAME]/[OBJECT_NAME] [OBJECT_DESTINATION]
+# gsutil cp gs://chess-nn/pgn_data_titled_2013 ~/Chess
+# gsutil cp gs://chess-nn/data ~/Chess
+# gsutil cp gs://chess-nn/data/train_data_2013 ~/Chess
+# gsutil cp gs://chess-nn/data/atk_map_* /home/huangtom2/Chess
+#
+# gsutil cp gs://chess-nn/libcudnn7-dev_7.1.3.16-1+cuda8.0_amd64.deb	 ~/
+# gsutil cp gs://chess-nn/libcudnn7_7.1.3.16-1+cuda8.0_amd64.deb	 ~/
+#
+# gsutil cp gs://chess-nn/cuDNN/libcudnn7_7.1.3.16-1+cuda9.1_amd64.deb	 ~/
+# gsutil cp gs://chess-nn/cuDNN/libcudnn7-dev_7.1.3.16-1+cuda9.1_amd64.deb	 ~/
+# gsutil cp gs://chess-nn/cuDNN/libcudnn7-doc_7.1.3.16-1+cuda9.1_amd64.deb ~/
+#
 
 
 
-#from local to VM
-gcloud compute scp [LOCAL_FILE_PATH] [INSTANCE_NAME]:~/
-gcloud compute copy-files ~/Desktop/Chess/data/piece_pos_data_check_1 nn-instance1:/home/huangtom2/Chess --zone asia-east1-a
-gcloud compute copy-files ~/Desktop/Chess/data/game_move_num root@nn-instance1:/home/huangtom2/Chess --zone asia-east1-a
+### set up CUDA-nn
+# sudo dpkg -i libcudnn7-dev_7.1.3.16-1+cuda8.0_amd64.deb
+# sudo dpkg -i libcudnn7_7.1.3.16-1+cuda8.0_amd64.deb
+# sudo apt-get install cuda-command-line-tools
+#
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/extras/CUPTI/lib64
 
-gcloud compute scp ~/Desktop/Chess/data/game_move_num nn-instance1:/home/huangtom2/Chess
-# check maintanance
-curl http://metadata.google.internal/computeMetadata/v1/instance/maintenance-event -H "Metadata-Flavor: Google"
+### from VM to bucket?
+# gsutil cp [LOCAL_OBJECT_LOCATION] gs://[DESTINATION_BUCKET_NAME]/
+# gsutil cp  ~/Chess/499 gs://chess-nn/
+# gsutil cp  ~/DNN gs://chess-nn/
+
+
+## from VM to local
+# gcloud compute copy-files [INSTANCE_NAME]:[REMOTE_FILE_PATH] [LOCAL_FILE_PATH]
+# gcloud compute copy-files nn-instance1:~/Chess/train_data_2013 ~/Desktop
+#
+# gcloud compute copy-files nn-instance1:~/Chess/castling_* ~/Desktop/Chess/data
+# gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/train_data{32499..41499..500} ~/Desktop/Chess/data
+# gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/game_move_num_* ~/Desktop/Chess/data
+# gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/at* ~/Desktop/Chess/data
+# gcloud compute copy-files nn-instance1:/home/huangtom2/chess_data.gz ~/Desktop/Chess/data
+# gcloud compute copy-files nn-instance1:/home/huangtom2/Chess/flag.npy ~/Desktop
+# gcloud compute copy-files nn-instance1:/home/huangtom2/DNN/evl_conv_1 ./
+
+
+
+## from local to VM
+# gcloud compute scp [LOCAL_FILE_PATH] [INSTANCE_NAME]:~/
+# gcloud compute copy-files ~/Desktop/Chess/data/piece_pos_data_check_1 nn-instance1:/home/huangtom2/Chess --zone asia-east1-a
+# gcloud compute copy-files ~/Desktop/Chess/data/game_move_num root@nn-instance1:/home/huangtom2/Chess --zone asia-east1-a
+#
+# gcloud compute scp ~/Desktop/Chess/data/game_move_num nn-instance1:/home/huangtom2/Chess
+
+### check maintanance
+# curl http://metadata.google.internal/computeMetadata/v1/instance/maintenance-event -H "Metadata-Flavor: Google"
 '''
 Meta data:
     1. 41738 total games played
@@ -548,25 +549,6 @@ test_h = h5py.File("//Volumes/DiskA/test_data.h5") #1021958
 '''
 
 
-
-#1. piece_pos_sep(data.iloc[0:80000,0:64])          CPU4
-#2. piece_pos_sep(data2.iloc[80000:160000,0:64])    CPU1
-#3. piece_pos_sep(data3.iloc[160000:240000,0:64])
-#done
-
-
-#second phase
-#1. piece_pos_sep(data.iloc[240000:1300000,0:64])    #to 1289999      CPU4
-#2. piece_pos_sep(data2.iloc[1300000:1800000,0:64])   #done
-#3. piece_pos_sep(data3.iloc[1800000:2300000,0:64])     #done
-
-#third phase
-#4. piece_pos_sep(data2.iloc[2300000:2850000,0:64])     #to 2369999
-#6. piece_pos_sep(data3.iloc[2850000:3406526,0:64])
-
-
-
-
 source Chess/bin/activate
 
 python3
@@ -710,25 +692,6 @@ def pd2h5(np_data,ds_name):
     with h5py.File("./Chess/data") as h:
         tmp = h.create_dataset(ds_name,data = np)
 
-
-
-
-
-
-
-2, 90113,91547,87779 == 269439 ok
-26, 19526,21966, 21062, 19780, 4644 == 86978 ok
-27, true:87836, get:87836 ok
-28, true:86503, get:86502 ok
-29, true:83107, get:83107 ok
-30, true:88119, get:88119 ok
-32, true:83514, get:83514 ok
-
-total: 3406485
-
-true - real
-p33: 79108-79067 = 131 wrong
-p32: 83514
 def count(start,end):
     t = 0
     for i in range(start,end):

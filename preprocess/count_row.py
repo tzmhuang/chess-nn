@@ -17,6 +17,3 @@ def sum_row():
         print (i)
         del(temp)
     return count
-
-
-t_33.iloc[79026:79067,:]==sup_33

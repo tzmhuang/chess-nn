@@ -71,21 +71,3 @@ def attack_map_df(pgn_df):
             #print (i)
     #temp.to_csv("~/Chess/atk_map{}".format(i))
     return output
-
-
-##parallel_no.: 4   Range:	10000-11060
-data = pd.read_csv("Desktop/Chess/pgn_data_titled_2013", index_col = 0) ##parallel number
-data =  data.iloc[41737:41738,:]		##set range
-train_data = pd.read_csv("Desktop/Chess/train_data_v2", index_col = 0)  ##parallel number
-s_n = min(train_data[train_data.game_num == 41737].index)  ##change game_num
-e_n = max(train_data[train_data.game_num == 41738].index)	##change game_num
-train_data = train_data.iloc[s_n:e_n+1,:]   ##set range
-attack_map_df(data)
-
-data = pd.read_csv("./Chess/pgn_data_titled_2013", index_col = 0) ##parallel number
-data =  data.iloc[41737:41738,:]		##set range
-train_data = pd.read_csv("./Chess/train_data_v2", index_col = 0)  ##parallel number
-s_n = min(train_data[train_data.game_num == 41737].index)  ##change game_num
-e_n = max(train_data[train_data.game_num == 41738].index)	##change game_num
-train_data = train_data.iloc[s_n:e_n+1,:]   ##set range
-attack_map_df(data)
