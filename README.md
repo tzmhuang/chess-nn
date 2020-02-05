@@ -1,4 +1,13 @@
-# chess-nn
+# A Deep Chess Engine with Minimax Forward Mining
+
+
+## Description
+
+This project aims to develop a chess engine (Engine) that uses deep learning and Bayesian theorem for chess board evaluation and minimax algorithm with alpha beta pruning for game tree searching. The project is written in python and the deep learning models are built with Tensorflow.
+
+Two neural network models ANN and ConvNN are built for board evaluation. The prediction results were compared, and the ANN model was selected to be used in the final Engine due to its superior performance. Applying Bayesian theorem to board evaluation does show preliminary success, as the engine would perform more reliable opening moves. However more thorough testing is needed for a more conclusive performance evaluation.
+
+The Engine was evaluated with existing chess strategy test suits to test its understandings of different strategic themes. It also played against an existing open source chess engine to test its general playing strength. The overall ability of the Engine is un satisfactory, but it could be a reason of limited search depth due to insufficient computing power. Again, more testing is required for a more comprehensive assessment.
 
 ## Data
 
@@ -38,3 +47,11 @@ keys():
 - `flag`
    - one-hot encoding for 
    `result`
+
+## Result
+
+The result shows that the Engine performs rather poorly. However, as it showed a fair performance in board state evaluation in games played against Sunfish, it is likely that the Engine is limited by its search algorithm. Originally this project hopes to use a probabilistic tree pruning method to limit the nodes searched and reach a deeper search depth, however there is not enough time.
+
+In the future, I hope to develop a more efficient search algorithm and a better pruning method to decrease search time. Moreover, I wish to incorporate the project with reinforcement learning to achieve an even better performance.
+
+
