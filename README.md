@@ -11,9 +11,9 @@ The Engine was evaluated with existing chess strategy test suits to test its und
 
 ## Data
 
-`<ficsgamesdb_2013_titled.pgn>`
-
 FICS games 2013 with titled player only. In total 41738 games
+(FICS Game Database, 2018. Retrieved from https://www.ficsgames.org)
+
 
 ## Extracted Data
 
